@@ -112,7 +112,7 @@
     </dependencies>
 
     <build>
-        <finalName>telegram-connector</finalName>
+        <finalName>telegram-connector-${project.version}</finalName>
         <plugins>
             <plugin>
                 <groupId>org.springframework.boot</groupId>
