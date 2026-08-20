@@ -1,0 +1,94 @@
+# docker-compose.yml
+#
+# Aktueller Stand: Nur telegram-connector-v2 existiert als echtes Modul, daher
+# ist aktuell auch nur dieser Service (+ seine Postgres-DB) definiert. Beide
+# hängen im internen Netzwerk "agent-network"; telegram-connector hängt
+# zusätzlich am Netzwerk "traefik-public" (siehe docker-compose.traefik.yml)
+# und ist damit der einzige von außen erreichbare Container.
+#
+# Weitere Softwarekomponenten (agent-runtime, agent-context-service,
+# api-gateway, tool-execution-service) kommen später als eigene Module dazu -
+# siehe die Vorlage am Ende des services-Blocks zum Kopieren pro neuem Modul.
+
+services:
+
+  # ---------------------------------------------------------------------
+  # telegram-connector – einziger extern erreichbarer Container
+  # ---------------------------------------------------------------------
+  telegram-connector:
+    build:
+      context: .
+      dockerfile: telegram-connector-v2/Dockerfile
+    container_name: telegram-connector
+    restart: unless-stopped
+    depends_on:
+      telegram-connector-db:
+        condition: service_healthy
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://telegram-connector-db:5432/telegram_connector
+      SPRING_DATASOURCE_USERNAME: ${TELEGRAM_CONNECTOR_DB_USER}
+      SPRING_DATASOURCE_PASSWORD: ${TELEGRAM_CONNECTOR_DB_PASSWORD}
+      TELEGRAM_CONNECTOR_AGENT_RUNTIME_BASE_URL: http://agent-runtime:8080  # zeigt aktuell ins Leere, siehe unten
+      TELEGRAM_CONNECTOR_PUBLIC_BASE_URL: ${PUBLIC_DOMAIN}
+    expose:
+      - "8080"
+    networks:
+      - agent-network
+      - traefik-public
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.telegram-connector.rule=Host(`${TRAEFIK_HOST}`)"
+      - "traefik.http.routers.telegram-connector.entrypoints=websecure"
+      - "traefik.http.routers.telegram-connector.tls.certresolver=letsencrypt"
+      - "traefik.http.services.telegram-connector.loadbalancer.server.port=8080"
+
+  telegram-connector-db:
+    image: postgres:16-alpine
+    container_name: telegram-connector-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: telegram_connector
+      POSTGRES_USER: ${TELEGRAM_CONNECTOR_DB_USER}
+      POSTGRES_PASSWORD: ${TELEGRAM_CONNECTOR_DB_PASSWORD}
+    volumes:
+      - telegram-connector-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${TELEGRAM_CONNECTOR_DB_USER} -d telegram_connector"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks:
+      - agent-network   # bewusst NICHT traefik-public - die DB darf nie von aussen erreichbar sein
+
+  # ---------------------------------------------------------------------
+  # NEUES MODUL HINZUFÜGEN – Vorlage zum Kopieren
+  # ---------------------------------------------------------------------
+  # Sobald ein neues Modul (z. B. agent-runtime) als Ordner neben
+  # telegram-connector-v2 im selben Repo existiert und ein eigenes Dockerfile
+  # hat, diesen Block einkommentieren, <modul-name> durch den echten
+  # Ordnernamen ersetzen und Umgebungsvariablen an den tatsächlichen
+  # Bedarf des Moduls anpassen. Kein "ports:" nötig, außer das Modul soll -
+  # wie telegram-connector - selbst öffentlich erreichbar sein.
+  #
+  # <modul-name>:
+  #   build:
+  #     context: .
+  #     dockerfile: <modul-name>/Dockerfile
+  #   container_name: <modul-name>
+  #   restart: unless-stopped
+  #   environment:
+  #     # Beispiel für internen Aufruf eines anderen Moduls über Docker-DNS:
+  #     # AGENT_CONTEXT_SERVICE_BASE_URL: http://agent-context-service:8080
+  #   expose:
+  #     - "8080"
+  #   networks:
+  #     - agent-network
+
+networks:
+  agent-network:
+    driver: bridge
+  traefik-public:
+    external: true   # wird vom separaten Traefik-Stack angelegt, siehe docker-compose.traefik.yml
+
+volumes:
+  telegram-connector-db-data:

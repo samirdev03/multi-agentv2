@@ -1,0 +1,39 @@
+name: Deploy to Server
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_SSH_HOST }}
+          username: ${{ secrets.VPS_SSH_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            set -euo pipefail
+
+            cd /root/platform
+
+            git pull origin master
+
+            # "up -d --build" allein reicht: Compose baut/ersetzt nur Services,
+            # deren Konfiguration oder Image sich geaendert hat - unveraenderte
+            # Container (z. B. telegram-connector-db) laufen durchgehend weiter.
+            # --remove-orphans deckt das ab, wofuer vorher extra "docker compose
+            # down" noetig war - ohne dessen Nachteil, ALLE Container erst zu
+            # stoppen (unnoetiger Downtime-Anteil ohne Mehrwert).
+            docker compose up -d --build --remove-orphans
+
+            # Nur ungenutzte Images aufraeumen - keine Netzwerke pruefen (siehe
+            # Begruendung unten).
+            docker image prune -f
