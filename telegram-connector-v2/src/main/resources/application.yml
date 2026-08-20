@@ -1,0 +1,23 @@
+spring:
+  application:
+    name: telegram-connector
+  datasource:
+    url: jdbc:postgresql://localhost:5432/telegram_connector
+    username: ${DB_USERNAME:telegram_connector}
+    password: ${DB_PASSWORD:changeme}
+  jpa:
+    hibernate:
+      ddl-auto: validate   # Schema kommt aus Flyway-Migrationen, nicht aus Hibernate-Auto-DDL
+    open-in-view: false
+  flyway:
+    enabled: true
+  shell:
+    interactive:
+      enabled: false       # verhindert REPL-Start bei normalem Boot ohne Argumente
+
+server:
+  port: 8080
+
+telegram-connector:
+  agent-runtime-base-url: http://agent-runtime:8080
+  public-base-url: https://bots.deine-domain.de
