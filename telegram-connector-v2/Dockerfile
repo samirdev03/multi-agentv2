@@ -41,9 +41,11 @@ COPY --from=extract --chown=spring:spring /extract/application/ ./
 
 EXPOSE 8080
 
-# Setzt spring-boot-starter-actuator voraus (Health-Endpoint). Falls diese
-# Abhaengigkeit nicht ergaenzt wird, HEALTHCHECK-Zeile entfernen oder auf
-# einen eigenen, actuator-freien Endpoint umstellen.
+# Setzt spring-boot-starter-actuator voraus (Health-Endpoint) - siehe
+# telegram-connector-v2/pom.xml. Ohne diese Abhaengigkeit liefert /actuator/health
+# ein generisches 404 vom normalen Spring-MVC-Dispatching statt eines Health-Status,
+# und der Container wird trotz funktionierender Anwendung dauerhaft als unhealthy
+# markiert (siehe ActuatorHealthIntegrationTest fuer den Regressionstest).
 HEALTHCHECK --interval=30s --timeout=3s --start-period=20s --retries=3 \
     CMD wget -qO- http://localhost:8080/actuator/health | grep -q '"status":"UP"' || exit 1
 
