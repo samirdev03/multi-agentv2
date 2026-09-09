@@ -43,6 +43,28 @@ services:
       - "traefik.http.routers.telegram-connector.entrypoints=websecure"
       - "traefik.http.routers.telegram-connector.tls.certresolver=letsencrypt"
       - "traefik.http.services.telegram-connector.loadbalancer.server.port=8080"
+  agent-runtime:
+    build:
+      context: .
+      dockerfile: agent-runtime/Dockerfile
+    container_name: agent-runtime
+    restart: unless-stopped
+
+    depends_on:
+      telegram-connector:
+        condition: service_healthy
+
+    environment:
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY}
+      TELEGRAM_CONNECTOR_BASE_URL: http://telegram-connector:8080
+
+    expose:
+      - "8080"
+
+    networks:
+      - agent-network
+
+
 
   telegram-connector-db:
     image: postgres:16-alpine
