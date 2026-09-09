@@ -28,18 +28,23 @@ FROM eclipse-temurin:21-jre-alpine
 
 WORKDIR /app
 
-# Anwendung nicht als root ausführen
+# Spring-Benutzer erstellen
 RUN addgroup -S spring && adduser -S spring -G spring
 
-# Für HEALTHCHECK
+# curl für HEALTHCHECK installieren
 RUN apk add --no-cache curl
 
-USER spring:spring
+# SQLite-Datenverzeichnis erstellen und dem Spring-Benutzer Schreibrechte geben
+RUN mkdir -p /app/data && chown -R spring:spring /app/data
 
+# Spring-Boot-Layer kopieren
 COPY --from=extract --chown=spring:spring /extract/dependencies/ ./
 COPY --from=extract --chown=spring:spring /extract/spring-boot-loader/ ./
 COPY --from=extract --chown=spring:spring /extract/snapshot-dependencies/ ./
 COPY --from=extract --chown=spring:spring /extract/application/ ./
+
+# Anwendung nicht als root ausführen
+USER spring:spring
 
 EXPOSE 8080
 
