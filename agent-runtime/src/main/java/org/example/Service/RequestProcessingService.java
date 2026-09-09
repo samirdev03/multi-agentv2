@@ -16,10 +16,10 @@ public class RequestProcessingService {
     private final AgentService agentService;
     private final ClientRegistry clientRegistry;
     private final ChannelRegistry channelRegistry;
-    private final String DEFAULT_PROVIDER = "openrouter";
-    private final String FALLBACK_PROMPT = "Du bist ein Fallback Agent der erstellt wurde, weil du über einen neuen Channel angesprochen wurdest." +
+    private static final String DEFAULT_PROVIDER = "openrouter";
+    private static final String FALLBACK_PROMPT = "Du bist ein Fallback Agent der erstellt wurde, weil du über einen neuen Channel angesprochen wurdest." +
             "Teile in deiner ersten Antwort bitte mit, dass dies die erste Nachricht an dich ist als Agent.";
-    private final String DEFAULT_MODEL = "nex-agi/nex-n2.5-mini:free";
+    private static final String DEFAULT_MODEL = "nex-agi/nex-n2.5-mini:free";
 
     public void getTelegramResponse(TelegramMessageDto msg){
         AgentEntity agent = agentService.getAgentByChannelId(msg.channelId())
@@ -30,6 +30,7 @@ public class RequestProcessingService {
                                 .provider(DEFAULT_PROVIDER)
                                 .modelId(DEFAULT_MODEL)
                                 .build());
+        agentService.saveAgent(agent);
         String response =  getClient(agent.getProvider()).getResponse(agent, msg.message()).content();
         sendTelegramResponse(buildTelegramResponse(response, msg.channelId()));
 

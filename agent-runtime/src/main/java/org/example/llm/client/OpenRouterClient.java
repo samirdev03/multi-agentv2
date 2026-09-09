@@ -36,6 +36,10 @@ public class OpenRouterClient implements Client{
                 agent.getModelId(),
                 List.of(
                         new OpenRouterMessage(
+                                "system",
+                                agent.getSystemPrompt()
+                        ),
+                        new OpenRouterMessage(
                                 "user",
                                 userMessage
                         )

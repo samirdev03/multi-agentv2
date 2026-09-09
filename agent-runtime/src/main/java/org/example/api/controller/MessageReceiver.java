@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/v1/messages")
 @RequiredArgsConstructor
 public class MessageReceiver {
-    private RequestProcessingService processingService;
+    private final RequestProcessingService processingService;
     @PostMapping
     public ResponseEntity<TelegramMessageDto> receiveMessage(@RequestBody TelegramMessageDto message){
         processingService.getTelegramResponse(message);
