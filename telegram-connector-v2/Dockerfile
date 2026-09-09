@@ -32,6 +32,7 @@ WORKDIR /app
 
 # Nicht als root laufen lassen (verbreitetes Anti-Pattern bei Container-Images)
 RUN addgroup -S spring && adduser -S spring -G spring
+RUN apk add --no-cache curl
 USER spring:spring
 
 COPY --from=extract --chown=spring:spring /extract/dependencies/ ./
