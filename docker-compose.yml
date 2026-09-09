@@ -21,6 +21,8 @@ services:
       dockerfile: telegram-connector-v2/Dockerfile
     container_name: telegram-connector
     restart: unless-stopped
+    stdin_open: true
+    tty: true
     depends_on:
       telegram-connector-db:
         condition: service_healthy
