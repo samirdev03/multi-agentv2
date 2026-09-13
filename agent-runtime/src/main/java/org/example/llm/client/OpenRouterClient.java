@@ -5,18 +5,23 @@ import org.example.agent.AgentEntity;
 import org.example.config.Credential;
 import org.example.config.CredentialRegistry;
 import org.example.llm.dto.ResponseDto;
-import org.springframework.http.client.SimpleClientHttpRequestFactory;
-import org.springframework.stereotype.Component;
-import org.springframework.web.client.RestClient;
+import org.example.tools.DateTimeTools;
 
-import java.util.List;
+import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.openai.OpenAiChatModel;
+import org.springframework.ai.openai.OpenAiChatOptions;
+import org.springframework.ai.openai.api.OpenAiApi;
+
+import org.springframework.stereotype.Component;
 
 @Component
 @RequiredArgsConstructor
-public class OpenRouterClient implements Client{
+public class OpenRouterClient implements Client {
 
     private final CredentialRegistry credentialRegistry;
+    private final DateTimeTools dateTimeTools;
 
+    @Override
     public ResponseDto getResponse(
             AgentEntity agent,
             String userMessage
@@ -25,82 +30,40 @@ public class OpenRouterClient implements Client{
         Credential credential =
                 credentialRegistry.getRequired("openrouter");
 
-        SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
-        requestFactory.setConnectTimeout(5_000);
-        requestFactory.setReadTimeout(120_000);
-
-        RestClient restClient = RestClient.builder()
+        OpenAiApi openAiApi = OpenAiApi.builder()
                 .baseUrl(credential.baseUrl())
-                .defaultHeader(
-                        "Authorization",
-                        "Bearer " + credential.apiKey()
-                )
-                .requestFactory(requestFactory)
+                .apiKey(credential.apiKey())
+                .completionsPath("/chat/completions")
                 .build();
 
-        OpenRouterRequest request = new OpenRouterRequest(
-                agent.getModelId(),
-                List.of(
-                        new OpenRouterMessage(
-                                "system",
-                                agent.getSystemPrompt()
-                        ),
-                        new OpenRouterMessage(
-                                "user",
-                                userMessage
-                        )
-                )
-        );
+        OpenAiChatOptions options = OpenAiChatOptions.builder()
+                .model(agent.getModelId())
+                .build();
 
-        OpenRouterApiResponse response = restClient
-                .post()
-                .uri("/chat/completions")
-                .body(request)
-                .retrieve()
-                .body(OpenRouterApiResponse.class);
+        OpenAiChatModel chatModel = OpenAiChatModel.builder()
+                .openAiApi(openAiApi)
+                .defaultOptions(options)
+                .build();
 
-        if (response == null
-                || response.choices() == null
-                || response.choices().isEmpty()
-                || response.choices().getFirst().message() == null) {
+        ChatClient chatClient = ChatClient.create(chatModel);
 
+        String content = chatClient
+                .prompt()
+                .system(agent.getSystemPrompt())
+                .user(userMessage)
+
+                // Hier bekommt der Agent seine Tools
+                .tools(dateTimeTools)
+
+                .call()
+                .content();
+
+        if (content == null) {
             throw new IllegalStateException(
                     "OpenRouter hat keine gültige Antwort geliefert"
             );
         }
 
-        String content =
-                response.choices()
-                        .getFirst()
-                        .message()
-                        .content();
-
         return new ResponseDto(content);
-    }
-
-
-    private record OpenRouterRequest(
-            String model,
-            List<OpenRouterMessage> messages
-    ) {
-    }
-
-
-    private record OpenRouterMessage(
-            String role,
-            String content
-    ) {
-    }
-
-
-    private record OpenRouterApiResponse(
-            List<Choice> choices
-    ) {
-    }
-
-
-    private record Choice(
-            OpenRouterMessage message
-    ) {
     }
 }

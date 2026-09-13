@@ -3,6 +3,9 @@ package org.example.agent;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.util.HashSet;
+import java.util.Set;
+
 @Entity
 @Table(name="agents")
 @Getter
@@ -31,5 +34,14 @@ public class AgentEntity {
 
     @Column(columnDefinition = "provider")
     private String provider;
+
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(
+            name = "agent_tools",
+            joinColumns = @JoinColumn(name = "agent_id")
+    )
+    @Column(name = "tool_name")
+    @Builder.Default
+    private Set<String> tools = new HashSet<>();
 
 }
