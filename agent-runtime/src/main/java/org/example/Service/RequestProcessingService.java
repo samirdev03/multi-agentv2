@@ -40,11 +40,11 @@ public class RequestProcessingService {
         return new TelegramMessageDto(message, channelId);
     }
     private void sendTelegramResponse(TelegramMessageDto response){
-        channelRegistry.channels.get("telegram").sendMessage(response);
+        channelRegistry.getTelegram().sendMessage(response);
     }
 
     private Client getClient(String provider){
-        return clientRegistry.clients.get(provider);
+        return clientRegistry.getClient(provider);
     }
 
 

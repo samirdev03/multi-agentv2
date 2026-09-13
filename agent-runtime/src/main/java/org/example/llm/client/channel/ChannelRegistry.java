@@ -17,4 +17,14 @@ public class ChannelRegistry {
     void init(){
         channels.put("telegram", telegram);
     }
+
+    /**
+     * Returns the Telegram channel client. Access it only through this method, never directly via
+     * the {@code channels} field: Beans in {@code org.example..*} are CGLIB-proxied by the
+     * {@code LoggingAspect}. For classes without a no-arg constructor the proxy does not run field
+     * initializers, so direct access to a public field yields {@code null}.
+     */
+    public TelegramChannel getTelegram() {
+        return channels.get("telegram");
+    }
 }
