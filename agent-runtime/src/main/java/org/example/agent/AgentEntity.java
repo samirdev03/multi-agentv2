@@ -40,8 +40,8 @@ public class AgentEntity {
             name = "agent_tools",
             joinColumns = @JoinColumn(name = "agent_id")
     )
-    @Column(name = "tool_name")
+    @Column(name = "tool_id")
     @Builder.Default
-    private Set<String> tools = new HashSet<>();
+    private Set<String> toolIds = new HashSet<>();
 
 }

@@ -6,10 +6,15 @@ import org.springframework.stereotype.Component;
 import java.time.LocalDateTime;
 
 @Component
-public class DateTimeTools {
+public class DateTimeTools implements AgentTool {
 
     @Tool(description = "Returns the current date and time")
     public String getCurrentDateTime() {
         return LocalDateTime.now().toString();
+    }
+
+    @Override
+    public String getId() {
+        return "datetime";
     }
 }

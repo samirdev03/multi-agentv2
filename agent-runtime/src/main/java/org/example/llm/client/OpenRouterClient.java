@@ -53,7 +53,7 @@ public class OpenRouterClient implements Client {
                 .user(userMessage)
 
                 // Hier bekommt der Agent seine Tools
-                .tools(dateTimeTools)
+                .tools(agent.getAgentId())
 
                 .call()
                 .content();
