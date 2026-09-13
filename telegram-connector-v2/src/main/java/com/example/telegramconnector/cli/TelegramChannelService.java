@@ -36,7 +36,7 @@ public class TelegramChannelService {
 
         channelRepository.save(channel);
 
-        registrationClient.registerWebhook(channelId, botToken);
+        registrationClient.registerWebhook(channel);
 
         return channel;
     }

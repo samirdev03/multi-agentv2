@@ -1,6 +1,7 @@
 package com.example.telegramconnector.client;
 
 import com.example.telegramconnector.config.TelegramConnectorProperties;
+import com.example.telegramconnector.domain.TelegramChannel;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
@@ -29,7 +30,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 class TelegramBotRegistrationClientTest {
 
     @Test
-    void registerWebhook_callsSetWebhookWithBotTokenAndComposedWebhookUrl() {
+    void registerWebhook_callsSetWebhookWithBotTokenSecretTokenAndComposedWebhookUrl() {
         // Given
         AtomicReference<ClientRequest> capturedRequest = new AtomicReference<>();
         WebClient.Builder stubbedBuilder = WebClient.builder()
@@ -41,11 +42,10 @@ class TelegramBotRegistrationClientTest {
                 new TelegramConnectorProperties("http://agent-runtime.internal", "https://public.example.com");
         TelegramBotRegistrationClient client = new TelegramBotRegistrationClient(stubbedBuilder, properties);
 
-        String channelId = "test-channel-123";
-        String botToken = "bot-token-123";
+        TelegramChannel channel = new TelegramChannel("test-channel-123", "Test Channel", "bot-token-123");
 
         // When
-        client.registerWebhook(channelId, botToken);
+        client.registerWebhook(channel);
 
         // Then
         ClientRequest request = capturedRequest.get();
@@ -55,11 +55,38 @@ class TelegramBotRegistrationClientTest {
         UriComponents uri = UriComponentsBuilder.fromUri(request.url()).build();
         assertThat(uri.getScheme()).isEqualTo("https");
         assertThat(uri.getHost()).isEqualTo("api.telegram.org");
-        assertThat(uri.getPath()).isEqualTo("/bot" + botToken + "/setWebhook");
+        assertThat(uri.getPath()).isEqualTo("/bot" + channel.getBotToken() + "/setWebhook");
 
         String rawUrlParam = uri.getQueryParams().getFirst("url");
         assertThat(rawUrlParam).isNotNull();
         String decodedUrlParam = URLDecoder.decode(rawUrlParam, StandardCharsets.UTF_8);
-        assertThat(decodedUrlParam).isEqualTo("https://public.example.com/webhook/" + channelId);
+        assertThat(decodedUrlParam).isEqualTo("https://public.example.com/webhook/" + channel.getChannelId());
+
+        String secretTokenParam = uri.getQueryParams().getFirst("secret_token");
+        assertThat(secretTokenParam).isEqualTo(channel.getSecretToken());
+    }
+
+    @Test
+    void registerWebhook_withoutSecretToken_omitsSecretTokenQueryParam() {
+        // Given
+        AtomicReference<ClientRequest> capturedRequest = new AtomicReference<>();
+        WebClient.Builder stubbedBuilder = WebClient.builder()
+                .exchangeFunction(request -> {
+                    capturedRequest.set(request);
+                    return Mono.just(ClientResponse.create(HttpStatus.OK).build());
+                });
+        TelegramConnectorProperties properties =
+                new TelegramConnectorProperties("http://agent-runtime.internal", "https://public.example.com");
+        TelegramBotRegistrationClient client = new TelegramBotRegistrationClient(stubbedBuilder, properties);
+
+        TelegramChannel channel = new TelegramChannel("test-channel-123", "Test Channel", "bot-token-123", null);
+
+        // When
+        client.registerWebhook(channel);
+
+        // Then
+        ClientRequest request = capturedRequest.get();
+        UriComponents uri = UriComponentsBuilder.fromUri(request.url()).build();
+        assertThat(uri.getQueryParams().containsKey("secret_token")).isFalse();
     }
 }

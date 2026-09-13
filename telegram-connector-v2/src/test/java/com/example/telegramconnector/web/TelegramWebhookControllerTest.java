@@ -24,6 +24,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Import(GlobalExceptionHandler.class)
 class TelegramWebhookControllerTest {
 
+    private static final String SECRET_TOKEN_HEADER = "X-Telegram-Bot-Api-Secret-Token";
+
     @Autowired
     private MockMvc mockMvc;
 
@@ -34,7 +36,7 @@ class TelegramWebhookControllerTest {
     private TelegramMessageForwardingService forwardingService;
 
     @Test
-    void receiveUpdate_withTextMessage_returnsOkAndForwardsMessage() throws Exception {
+    void receiveUpdate_withTextMessageAndValidSecret_returnsOkAndForwardsMessage() throws Exception {
         // Given
         String channelId = "test-channel-123";
         TelegramChannel channel = new TelegramChannel(channelId, "Test Channel", "bot-token-123");
@@ -54,6 +56,7 @@ class TelegramWebhookControllerTest {
 
         // When & Then
         mockMvc.perform(post("/webhook/{channelId}", channelId)
+                        .header(SECRET_TOKEN_HEADER, channel.getSecretToken())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(updateJson))
                 .andExpect(status().isOk());
@@ -82,9 +85,39 @@ class TelegramWebhookControllerTest {
 
         // When & Then
         mockMvc.perform(post("/webhook/{channelId}", channelId)
+                        .header(SECRET_TOKEN_HEADER, channel.getSecretToken())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(updateJson))
                 .andExpect(status().isOk());
+
+        verify(forwardingService, never()).forward(any(), any());
+    }
+
+    @Test
+    void receiveUpdate_withWrongSecret_returnsForbiddenAndDoesNotForward() throws Exception {
+        // Given
+        String channelId = "test-channel-123";
+        TelegramChannel channel = new TelegramChannel(channelId, "Test Channel", "bot-token-123");
+        when(channelResolver.resolveChannel(channelId)).thenReturn(channel);
+
+        String updateJson = """
+                {
+                  "update_id": 3,
+                  "message": {
+                    "message_id": 3,
+                    "date": 1691500000,
+                    "chat": { "id": 42, "type": "private" },
+                    "text": "Hallo Welt"
+                  }
+                }
+                """;
+
+        // When & Then
+        mockMvc.perform(post("/webhook/{channelId}", channelId)
+                        .header(SECRET_TOKEN_HEADER, "wrong-secret")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(updateJson))
+                .andExpect(status().isForbidden());
 
         verify(forwardingService, never()).forward(any(), any());
     }
@@ -98,9 +131,9 @@ class TelegramWebhookControllerTest {
 
         String updateJson = """
                 {
-                  "update_id": 3,
+                  "update_id": 4,
                   "message": {
-                    "message_id": 3,
+                    "message_id": 4,
                     "date": 1691500000,
                     "chat": { "id": 42, "type": "private" },
                     "text": "Hallo Welt"

@@ -1,6 +1,7 @@
 package com.example.telegramconnector.client;
 
 import com.example.telegramconnector.config.TelegramConnectorProperties;
+import com.example.telegramconnector.domain.TelegramChannel;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 
@@ -24,11 +25,18 @@ public class TelegramBotRegistrationClient {
      * kein Request-Pfad des laufenden Webservers), dort ist Blockieren unproblematisch und
      * deutlich einfacher als eine reaktive CLI-Kommandokette.
      */
-    public void registerWebhook(String channelId, String botToken) {
-        String webhookUrl = publicBaseUrl + "/webhook/" + channelId;
+    public void registerWebhook(TelegramChannel channel) {
+        String webhookUrl = publicBaseUrl + "/webhook/" + channel.getChannelId();
+        String secretToken = channel.getSecretToken();
+
+        String uri = "/bot{token}/setWebhook?url={url}";
+        if (secretToken != null && !secretToken.isBlank()) {
+            // secret_token enthaelt nur URL-sichere Zeichen (A-Z, a-z, 0-9, -, _)
+            uri += "&secret_token=" + secretToken;
+        }
 
         webClient.get()
-                .uri("/bot{token}/setWebhook?url={url}", botToken, webhookUrl)
+                .uri(uri, channel.getBotToken(), webhookUrl)
                 .retrieve()
                 .toBodilessEntity()
                 .block();

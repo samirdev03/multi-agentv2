@@ -6,6 +6,10 @@ import com.example.telegramconnector.domain.TelegramMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
+import reactor.util.retry.Retry;
+
+import java.time.Duration;
 
 @Service
 public class TelegramMessageForwardingService {
@@ -21,9 +25,18 @@ public class TelegramMessageForwardingService {
     public void forward(TelegramChannel channel, String rawText) {
         TelegramMessage message = new TelegramMessage(rawText, channel.getChannelId());
         agentRuntimeClient.sendAsync(message)
+                .retryWhen(Retry.backoff(3, Duration.ofMillis(500))
+                        .filter(this::isTransientError))
                 .doOnError(error -> log.error(
                         "Weiterleitung an agent-runtime fehlgeschlagen fuer channelId={}",
                         channel.getChannelId(), error))
                 .subscribe();
+    }
+
+    private boolean isTransientError(Throwable error) {
+        if (error instanceof WebClientResponseException responseException) {
+            return !responseException.getStatusCode().is4xxClientError();
+        }
+        return true;
     }
 }

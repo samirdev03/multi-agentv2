@@ -5,6 +5,7 @@ import org.example.agent.AgentEntity;
 import org.example.config.Credential;
 import org.example.config.CredentialRegistry;
 import org.example.llm.dto.ResponseDto;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
@@ -24,12 +25,17 @@ public class OpenRouterClient implements Client{
         Credential credential =
                 credentialRegistry.getRequired("openrouter");
 
+        SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
+        requestFactory.setConnectTimeout(5_000);
+        requestFactory.setReadTimeout(120_000);
+
         RestClient restClient = RestClient.builder()
                 .baseUrl(credential.baseUrl())
                 .defaultHeader(
                         "Authorization",
                         "Bearer " + credential.apiKey()
                 )
+                .requestFactory(requestFactory)
                 .build();
 
         OpenRouterRequest request = new OpenRouterRequest(

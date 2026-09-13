@@ -32,7 +32,7 @@ public class TelegramChannelCliCommands {
 
         TelegramChannel channel = new TelegramChannel(channelId, name, botToken);
         channelRepository.save(channel);
-        registrationClient.registerWebhook(channelId, botToken);
+        registrationClient.registerWebhook(channel);
 
         return "Channel '" + channelId + "' angelegt und Webhook bei Telegram registriert.";
     }

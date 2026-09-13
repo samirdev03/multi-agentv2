@@ -50,7 +50,7 @@ class TelegramChannelCliCommandsTest {
         assertThat(savedChannel.getName()).isEqualTo(name);
         assertThat(savedChannel.getBotToken()).isEqualTo(botToken);
 
-        verify(registrationClient).registerWebhook(channelId, botToken);
+        verify(registrationClient).registerWebhook(channelCaptor.getValue());
         assertThat(result).contains("angelegt");
     }
 
@@ -65,7 +65,7 @@ class TelegramChannelCliCommandsTest {
 
         // Then
         verify(channelRepository, never()).save(any());
-        verify(registrationClient, never()).registerWebhook(any(), any());
+        verify(registrationClient, never()).registerWebhook(any(TelegramChannel.class));
         assertThat(result).contains("existiert bereits");
     }
 

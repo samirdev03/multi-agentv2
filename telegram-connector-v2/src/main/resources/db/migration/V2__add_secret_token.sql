@@ -1,0 +1,1 @@
+ALTER TABLE telegram_channel ADD COLUMN secret_token VARCHAR(255);

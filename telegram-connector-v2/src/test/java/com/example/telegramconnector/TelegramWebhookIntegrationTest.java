@@ -65,6 +65,7 @@ class TelegramWebhookIntegrationTest {
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.set("X-Telegram-Bot-Api-Secret-Token", channel.getSecretToken());
         HttpEntity<String> request = new HttpEntity<>(updateJson, headers);
 
         // When
