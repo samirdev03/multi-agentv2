@@ -89,6 +89,25 @@ class ResponseDeliveryControllerTest {
     }
 
     @Test
+    void deliverResponse_withMalformedJsonAndMissingCallbackToken_returnsUnauthorized() throws Exception {
+        mockMvc.perform(post("/api/v1/responses")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{ malformed-json"))
+                .andExpect(status().isUnauthorized());
+        verifyNoInteractions(responseDeliveryService);
+    }
+
+    @Test
+    void deliverResponse_withMalformedJsonAndInvalidCallbackToken_returnsUnauthorized() throws Exception {
+        mockMvc.perform(post("/api/v1/responses")
+                        .header("X-Connector-Token", "invalid-token")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{ malformed-json"))
+                .andExpect(status().isUnauthorized());
+        verifyNoInteractions(responseDeliveryService);
+    }
+
+    @Test
     void deliverResponse_withUnknownChannelId_returnsNotFound() throws Exception {
         // Given
         String unknownChannelId = "unknown-channel-456";
