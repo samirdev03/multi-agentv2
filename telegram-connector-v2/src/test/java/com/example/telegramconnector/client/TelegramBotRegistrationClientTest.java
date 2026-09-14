@@ -37,9 +37,12 @@ class TelegramBotRegistrationClientTest {
                 .exchangeFunction(request -> {
                     capturedRequest.set(request);
                     return Mono.just(ClientResponse.create(HttpStatus.OK).build());
-                });
+        });
         TelegramConnectorProperties properties =
-                new TelegramConnectorProperties("http://agent-runtime.internal", "https://public.example.com");
+                new TelegramConnectorProperties(
+                        "http://agent-runtime.internal",
+                        "https://public.example.com",
+                        "http://telegram-connector.internal:8080");
         TelegramBotRegistrationClient client = new TelegramBotRegistrationClient(stubbedBuilder, properties);
 
         TelegramChannel channel = new TelegramChannel("test-channel-123", "Test Channel", "bot-token-123");
@@ -74,9 +77,12 @@ class TelegramBotRegistrationClientTest {
                 .exchangeFunction(request -> {
                     capturedRequest.set(request);
                     return Mono.just(ClientResponse.create(HttpStatus.OK).build());
-                });
+        });
         TelegramConnectorProperties properties =
-                new TelegramConnectorProperties("http://agent-runtime.internal", "https://public.example.com");
+                new TelegramConnectorProperties(
+                        "http://agent-runtime.internal",
+                        "https://public.example.com",
+                        "http://telegram-connector.internal:8080");
         TelegramBotRegistrationClient client = new TelegramBotRegistrationClient(stubbedBuilder, properties);
 
         TelegramChannel channel = new TelegramChannel("test-channel-123", "Test Channel", "bot-token-123", null);

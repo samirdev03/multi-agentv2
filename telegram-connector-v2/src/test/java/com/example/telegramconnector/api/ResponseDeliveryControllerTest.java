@@ -89,6 +89,25 @@ class ResponseDeliveryControllerTest {
     }
 
     @Test
+    void deliverResponse_withMatrixParameterAndMissingCallbackToken_returnsUnauthorizedBeforeBodyParsing() throws Exception {
+        mockMvc.perform(post("/api/v1/responses;x=1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{ malformed-json"))
+                .andExpect(status().isUnauthorized());
+        verifyNoInteractions(responseDeliveryService);
+    }
+
+    @Test
+    void deliverResponse_withMatrixParameterAndInvalidCallbackToken_returnsUnauthorizedBeforeServiceInvocation() throws Exception {
+        mockMvc.perform(post("/api/v1/responses;x=1")
+                        .header("X-Connector-Token", "invalid-token")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"channelType\":\"TELEGRAM\",\"channelId\":\"test-channel-123\",\"content\":\"Antwort\"}"))
+                .andExpect(status().isUnauthorized());
+        verifyNoInteractions(responseDeliveryService);
+    }
+
+    @Test
     void deliverResponse_withMalformedJsonAndMissingCallbackToken_returnsUnauthorized() throws Exception {
         mockMvc.perform(post("/api/v1/responses")
                         .contentType(MediaType.APPLICATION_JSON)

@@ -29,7 +29,12 @@ public class CallbackTokenFilter extends OncePerRequestFilter {
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
         return !"POST".equals(request.getMethod())
-                || !RESPONSE_PATH.equals(request.getRequestURI().substring(request.getContextPath().length()));
+                || !RESPONSE_PATH.equals(withoutMatrixParameters(request));
+    }
+
+    private String withoutMatrixParameters(HttpServletRequest request) {
+        String requestPath = request.getRequestURI().substring(request.getContextPath().length());
+        return requestPath.replaceAll(";[^/]*", "");
     }
 
     @Override

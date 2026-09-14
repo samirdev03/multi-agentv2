@@ -5,6 +5,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @ConfigurationProperties(prefix = "telegram-connector")
 public record TelegramConnectorProperties(
         String agentRuntimeBaseUrl,
-        String publicBaseUrl
+        String publicBaseUrl,
+        String callbackBaseUrl
 ) {
 }

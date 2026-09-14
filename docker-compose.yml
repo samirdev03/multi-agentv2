@@ -27,6 +27,7 @@ services:
 
       # Öffentliche URL des Telegram Connectors
       TELEGRAM_CONNECTOR_PUBLIC_BASE_URL: ${PUBLIC_DOMAIN}
+      TELEGRAM_CONNECTOR_CALLBACK_BASE_URL: http://telegram-connector:8080
       CONNECTOR_CALLBACK_TOKEN: ${CONNECTOR_CALLBACK_TOKEN}
 
     expose:
@@ -59,7 +60,7 @@ services:
       OPENROUTER_API_KEY: ${OPENROUTER_API_KEY}
 
       # Interne Kommunikation mit Telegram Connector
-      TELEGRAM_CONNECTOR_BASE_URL: http://telegram-connector:8080
+      CALLBACK_ALLOWED_BASE_URL: http://telegram-connector:8080
       CONNECTOR_CALLBACK_TOKEN: ${CONNECTOR_CALLBACK_TOKEN}
 
     expose:

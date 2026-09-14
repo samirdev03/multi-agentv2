@@ -18,7 +18,7 @@ public class AgentRuntimeClient {
         this.webClient = webClientBuilder
                 .baseUrl(properties.agentRuntimeBaseUrl())
                 .build();
-        this.responseUrl = properties.publicBaseUrl() + "/api/v1/responses";
+        this.responseUrl = properties.callbackBaseUrl() + "/api/v1/responses";
     }
 
     /**

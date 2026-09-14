@@ -48,7 +48,10 @@ class AgentRuntimeClientTest {
                     return Mono.just(ClientResponse.create(HttpStatus.ACCEPTED).build());
                 });
         TelegramConnectorProperties properties =
-                new TelegramConnectorProperties("http://agent-runtime.internal", "https://public.example.com");
+                new TelegramConnectorProperties(
+                        "http://agent-runtime.internal",
+                        "https://public.example.com",
+                        "http://telegram-connector.internal:8080");
         AgentRuntimeClient client = new AgentRuntimeClient(stubbedBuilder, properties);
 
         TelegramMessage message = new TelegramMessage("Hallo Welt", "test-channel-123");
@@ -70,7 +73,7 @@ class AgentRuntimeClientTest {
                 .containsEntry("channelId", "test-channel-123")
                 .containsEntry("channelType", "TELEGRAM")
                 .containsEntry("content", "Hallo Welt")
-                .containsEntry("responseUrl", "https://public.example.com/api/v1/responses")
+                .containsEntry("responseUrl", "http://telegram-connector.internal:8080/api/v1/responses")
                 .doesNotContainKey("message");
     }
 
