@@ -48,8 +48,8 @@ class ResponseDeliveryServiceTest {
         // Given
         String channelId = "test-channel-123";
         TelegramChannel channel = new TelegramChannel(channelId, "Test Channel", "bot-token-123");
-        FileAttachmentRequest image = new FileAttachmentRequest("C:/files/chart.png", "chart.png", FileType.IMAGE);
-        FileAttachmentRequest pdf = new FileAttachmentRequest("C:/files/answer.pdf", "answer.pdf", FileType.PDF);
+        FileAttachmentRequest image = new FileAttachmentRequest("chart.png", FileType.IMAGE, new byte[] {1});
+        FileAttachmentRequest pdf = new FileAttachmentRequest("answer.pdf", FileType.PDF, new byte[] {2});
         when(channelResolver.resolveChannel(channelId)).thenReturn(channel);
         when(telegramBotClient.sendMessage(channel, "Antwort vom Agenten")).thenReturn(Mono.empty());
         when(telegramBotClient.sendPhoto(channel, image)).thenReturn(Mono.empty());

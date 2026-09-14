@@ -29,6 +29,7 @@ public class CallbackResponseClient {
 
         restClient.post()
                 .uri(responseUrl)
+                .header("X-Connector-Token", callbackProperties.getConnectorToken())
                 .body(response)
                 .retrieve()
                 .toBodilessEntity();

@@ -3,7 +3,7 @@ package com.example.telegramconnector.client;
 import com.example.telegramconnector.api.FileAttachmentRequest;
 import com.example.telegramconnector.domain.TelegramChannel;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import org.springframework.core.io.FileSystemResource;
+import org.springframework.core.io.ByteArrayResource;
 import org.springframework.stereotype.Component;
 import org.springframework.http.client.MultipartBodyBuilder;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -46,7 +46,12 @@ public class TelegramBotClient {
             String fileField) {
         MultipartBodyBuilder body = new MultipartBodyBuilder();
         body.part("chat_id", channel.getChannelId());
-        body.part(fileField, new FileSystemResource(attachment.path()))
+        body.part(fileField, new ByteArrayResource(attachment.content()) {
+                    @Override
+                    public String getFilename() {
+                        return attachment.fileName();
+                    }
+                })
                 .filename(attachment.fileName());
 
         return webClient.post()

@@ -13,12 +13,15 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@WebMvcTest(ResponseDeliveryController.class)
+@WebMvcTest(value = ResponseDeliveryController.class,
+        properties = "telegram-connector.callback-token=test-callback-token")
 @Import(GlobalExceptionHandler.class)
 class ResponseDeliveryControllerTest {
 
@@ -29,7 +32,7 @@ class ResponseDeliveryControllerTest {
     private ResponseDeliveryService responseDeliveryService;
 
     @Test
-    void deliverResponse_withGenericContentAndPdfAttachment_returnsAcceptedAndDelegatesToService() throws Exception {
+    void deliverResponse_withMatchingCallbackTokenAndPdfBytes_returnsAcceptedAndDelegatesToService() throws Exception {
         // Given
         String requestJson = """
                 {
@@ -38,9 +41,9 @@ class ResponseDeliveryControllerTest {
                   "content": "Antwort vom Agenten",
                   "attachments": [
                     {
-                      "path": "C:/files/answer.pdf",
                       "fileName": "answer.pdf",
-                      "type": "PDF"
+                      "type": "PDF",
+                      "content": "cGRmLWNvbnRlbnQ="
                     }
                   ]
                 }
@@ -48,14 +51,41 @@ class ResponseDeliveryControllerTest {
 
         // When & Then
         mockMvc.perform(post("/api/v1/responses")
+                        .header("X-Connector-Token", "test-callback-token")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestJson))
                 .andExpect(status().isAccepted());
 
+        org.mockito.ArgumentCaptor<java.util.List<FileAttachmentRequest>> attachmentsCaptor =
+                org.mockito.ArgumentCaptor.forClass(java.util.List.class);
         verify(responseDeliveryService).deliver(
-                "test-channel-123",
-                "Antwort vom Agenten",
-                java.util.List.of(new FileAttachmentRequest("C:/files/answer.pdf", "answer.pdf", FileType.PDF)));
+                eq("test-channel-123"),
+                eq("Antwort vom Agenten"),
+                attachmentsCaptor.capture());
+        assertThat(attachmentsCaptor.getValue()).singleElement().satisfies(attachment -> {
+            assertThat(attachment.fileName()).isEqualTo("answer.pdf");
+            assertThat(attachment.type()).isEqualTo(FileType.PDF);
+            assertThat(attachment.content()).isEqualTo("pdf-content".getBytes());
+        });
+    }
+
+    @Test
+    void deliverResponse_withoutCallbackToken_returnsUnauthorized() throws Exception {
+        mockMvc.perform(post("/api/v1/responses")
+                        .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"channelType\":\"TELEGRAM\",\"channelId\":\"test-channel-123\",\"content\":\"Antwort\"}"))
+                .andExpect(status().isUnauthorized());
+        verifyNoInteractions(responseDeliveryService);
+    }
+
+    @Test
+    void deliverResponse_withInvalidCallbackToken_returnsUnauthorized() throws Exception {
+        mockMvc.perform(post("/api/v1/responses")
+                        .header("X-Connector-Token", "invalid-token")
+                        .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"channelType\":\"TELEGRAM\",\"channelId\":\"test-channel-123\",\"content\":\"Antwort\"}"))
+                .andExpect(status().isUnauthorized());
+        verifyNoInteractions(responseDeliveryService);
     }
 
     @Test
@@ -76,6 +106,7 @@ class ResponseDeliveryControllerTest {
 
         // When & Then
         mockMvc.perform(post("/api/v1/responses")
+                        .header("X-Connector-Token", "test-callback-token")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestJson))
                 .andExpect(status().isNotFound());

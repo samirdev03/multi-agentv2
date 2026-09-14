@@ -3,10 +3,13 @@ package org.example.tools.service;
 import lombok.RequiredArgsConstructor;
 import org.example.api.dto.*;
 import org.example.callback.CallbackResponseClient;
+import org.example.tools.config.FileToolsProperties;
 import org.springframework.stereotype.Service;
 
 import java.io.File;
+import java.io.IOException;
 import java.net.URI;
+import java.nio.file.Files;
 import java.util.List;
 
 @Service
@@ -14,6 +17,7 @@ import java.util.List;
 public class SendMessageService {
 
     private final CallbackResponseClient callbackResponseClient;
+    private final FileToolsProperties fileToolsProperties;
 
     public void sendFileAttachment(
             String path,
@@ -25,11 +29,7 @@ public class SendMessageService {
 
         File file = getFile(path);
 
-        FileAttachmentDto attachment = new FileAttachmentDto(
-                file.getAbsolutePath(),
-                file.getName(),
-                determineFileType(file)
-        );
+        FileAttachmentDto attachment = toAttachment(file);
 
         GenericResponseDto response = new GenericResponseDto(
                 channelType,
@@ -64,6 +64,30 @@ public class SendMessageService {
         }
 
         return file;
+    }
+
+    private FileAttachmentDto toAttachment(File file) {
+        long maxSizeBytes = fileToolsProperties.getMaxSizeBytes();
+        if (maxSizeBytes <= 0) {
+            throw new IllegalStateException("Configured attachment size limit must be positive");
+        }
+
+        if (file.length() > maxSizeBytes) {
+            throw new IllegalArgumentException("Attachment exceeds configured limit of " + maxSizeBytes + " bytes");
+        }
+
+        byte[] content;
+        try {
+            content = Files.readAllBytes(file.toPath());
+        } catch (IOException exception) {
+            throw new IllegalArgumentException("Unable to read attachment: " + file.getName(), exception);
+        }
+
+        if (content.length > maxSizeBytes) {
+            throw new IllegalArgumentException("Attachment exceeds configured limit of " + maxSizeBytes + " bytes");
+        }
+
+        return new FileAttachmentDto(file.getName(), determineFileType(file), content);
     }
 
     private FileType determineFileType(File file) {

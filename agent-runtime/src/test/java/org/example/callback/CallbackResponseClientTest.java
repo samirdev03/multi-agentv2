@@ -24,12 +24,14 @@ class CallbackResponseClientTest {
     private HttpServer server;
     private URI serverBaseUrl;
     private final AtomicReference<String> requestBody = new AtomicReference<>();
+    private final AtomicReference<String> connectorToken = new AtomicReference<>();
 
     @BeforeEach
     void startServer() throws IOException {
         server = HttpServer.create(new InetSocketAddress("localhost", 0), 0);
         server.createContext("/api/v1/responses", exchange -> {
             requestBody.set(new String(exchange.getRequestBody().readAllBytes()));
+            connectorToken.set(exchange.getRequestHeaders().getFirst("X-Connector-Token"));
             exchange.sendResponseHeaders(200, -1);
             exchange.close();
         });
@@ -46,7 +48,7 @@ class CallbackResponseClientTest {
     void sendResponse_postsGenericResponseToAllowedCallbackUrl() {
         CallbackResponseClient client = new CallbackResponseClient(
                 RestClient.builder(),
-                new CallbackProperties(List.of(serverBaseUrl))
+                new CallbackProperties(List.of(serverBaseUrl), "callback-token")
         );
 
         client.sendResponse(
@@ -57,13 +59,14 @@ class CallbackResponseClientTest {
         assertThat(requestBody.get()).contains("\"channelType\":\"TELEGRAM\"");
         assertThat(requestBody.get()).contains("\"channelId\":\"12345\"");
         assertThat(requestBody.get()).contains("\"content\":\"Hello connector\"");
+        assertThat(connectorToken.get()).isEqualTo("callback-token");
     }
 
     @Test
     void sendResponse_rejectsCallbackUrlOutsideAllowedBaseUrls() {
         CallbackResponseClient client = new CallbackResponseClient(
                 RestClient.builder(),
-                new CallbackProperties(List.of(serverBaseUrl))
+                new CallbackProperties(List.of(serverBaseUrl), "callback-token")
         );
 
         URI untrustedUrl = URI.create(
@@ -83,7 +86,7 @@ class CallbackResponseClientTest {
     void sendResponse_rejectsCallbackUrlWithAnAllowedHostPrefix() {
         CallbackResponseClient client = new CallbackResponseClient(
                 RestClient.builder(),
-                new CallbackProperties(List.of(URI.create("http://connector:8080")))
+                new CallbackProperties(List.of(URI.create("http://connector:8080")), "callback-token")
         );
 
         URI untrustedUrl = URI.create(

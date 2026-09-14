@@ -12,4 +12,6 @@ import org.springframework.context.annotation.Configuration;
 public class FileToolsProperties {
 
     private String path;
+
+    private long maxSizeBytes;
 }

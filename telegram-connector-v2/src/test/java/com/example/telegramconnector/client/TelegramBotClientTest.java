@@ -19,9 +19,8 @@ import org.springframework.web.util.UriComponents;
 import org.springframework.web.util.UriComponentsBuilder;
 import reactor.core.publisher.Mono;
 
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -75,10 +74,9 @@ class TelegramBotClientTest {
         AtomicReference<ClientRequest> capturedRequest = new AtomicReference<>();
         TelegramBotClient client = new TelegramBotClient(stubbedBuilder(capturedRequest));
         TelegramChannel channel = new TelegramChannel("test-channel-123", "Test Channel", "bot-token-123");
-        Path image = Files.createTempFile("telegram-upload-", ".png");
-        Files.writeString(image, "image-content");
 
-        client.sendPhoto(channel, new FileAttachmentRequest(image.toString(), "chart.png", FileType.IMAGE)).block();
+        client.sendPhoto(channel, new FileAttachmentRequest(
+                "chart.png", FileType.IMAGE, "image-content".getBytes(StandardCharsets.UTF_8))).block();
 
         assertMultipartUpload(capturedRequest.get(), channel, "/sendPhoto", "photo", "image-content");
     }
@@ -88,10 +86,9 @@ class TelegramBotClientTest {
         AtomicReference<ClientRequest> capturedRequest = new AtomicReference<>();
         TelegramBotClient client = new TelegramBotClient(stubbedBuilder(capturedRequest));
         TelegramChannel channel = new TelegramChannel("test-channel-123", "Test Channel", "bot-token-123");
-        Path document = Files.createTempFile("telegram-upload-", ".pdf");
-        Files.writeString(document, "pdf-content");
 
-        client.sendDocument(channel, new FileAttachmentRequest(document.toString(), "answer.pdf", FileType.PDF)).block();
+        client.sendDocument(channel, new FileAttachmentRequest(
+                "answer.pdf", FileType.PDF, "pdf-content".getBytes(StandardCharsets.UTF_8))).block();
 
         assertMultipartUpload(capturedRequest.get(), channel, "/sendDocument", "document", "pdf-content");
     }

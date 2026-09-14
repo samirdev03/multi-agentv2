@@ -1,8 +1,16 @@
 package org.example.api.dto;
 
 public record FileAttachmentDto(
-        String path,
         String fileName,
-        FileType type
+        FileType type,
+        byte[] content
 ) {
+    public FileAttachmentDto {
+        content = content == null ? new byte[0] : content.clone();
+    }
+
+    @Override
+    public byte[] content() {
+        return content.clone();
+    }
 }

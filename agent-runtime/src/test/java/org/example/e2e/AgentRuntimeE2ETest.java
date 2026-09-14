@@ -89,6 +89,7 @@ class AgentRuntimeE2ETest {
     @DynamicPropertySource
     static void testDatabaseProperties(DynamicPropertyRegistry registry) {
         registry.add("spring.datasource.url", () -> "jdbc:sqlite:./target/agent-runtime-e2e.db");
+        registry.add("callback.connector-token", () -> "test-callback-token");
     }
 
     @BeforeAll
