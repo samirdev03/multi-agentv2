@@ -12,6 +12,7 @@ import org.springframework.web.client.RestClient;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.URI;
+import java.lang.reflect.Method;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -76,5 +77,30 @@ class CallbackResponseClientTest {
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("not allowed");
         assertThat(requestBody.get()).isNull();
+    }
+
+    @Test
+    void sendResponse_rejectsCallbackUrlWithAnAllowedHostPrefix() {
+        CallbackResponseClient client = new CallbackResponseClient(
+                RestClient.builder(),
+                new CallbackProperties(List.of(URI.create("http://connector:8080")))
+        );
+
+        URI untrustedUrl = URI.create(
+                "http://connector:8080.evil.example/api/v1/responses"
+        );
+
+        assertThat(isAllowed(client, untrustedUrl)).isFalse();
+    }
+
+    private boolean isAllowed(CallbackResponseClient client, URI responseUrl) {
+        try {
+            Method isAllowed = CallbackResponseClient.class
+                    .getDeclaredMethod("isAllowed", URI.class);
+            isAllowed.setAccessible(true);
+            return (boolean) isAllowed.invoke(client, responseUrl);
+        } catch (ReflectiveOperationException exception) {
+            throw new AssertionError(exception);
+        }
     }
 }

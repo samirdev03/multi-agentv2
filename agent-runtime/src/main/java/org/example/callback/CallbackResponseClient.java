@@ -6,6 +6,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
 import java.net.URI;
+import java.util.Objects;
 
 @Component
 public class CallbackResponseClient {
@@ -35,7 +36,47 @@ public class CallbackResponseClient {
 
     private boolean isAllowed(URI responseUrl) {
         return callbackProperties.getAllowedBaseUrls().stream()
-                .anyMatch(allowedBaseUrl -> responseUrl.toString()
-                        .startsWith(allowedBaseUrl.toString()));
+                .anyMatch(allowedBaseUrl -> hasSameOrigin(allowedBaseUrl, responseUrl)
+                        && hasAllowedPath(allowedBaseUrl, responseUrl));
+    }
+
+    private boolean hasSameOrigin(URI allowedBaseUrl, URI responseUrl) {
+        return allowedBaseUrl.getHost() != null
+                && responseUrl.getHost() != null
+                && allowedBaseUrl.getScheme().equalsIgnoreCase(responseUrl.getScheme())
+                && allowedBaseUrl.getHost().equalsIgnoreCase(responseUrl.getHost())
+                && effectivePort(allowedBaseUrl) == effectivePort(responseUrl);
+    }
+
+    private int effectivePort(URI uri) {
+        if (uri.getPort() != -1) {
+            return uri.getPort();
+        }
+
+        return switch (uri.getScheme().toLowerCase()) {
+            case "http" -> 80;
+            case "https" -> 443;
+            default -> -1;
+        };
+    }
+
+    private boolean hasAllowedPath(URI allowedBaseUrl, URI responseUrl) {
+        String allowedPath = normalizedPath(allowedBaseUrl);
+        if ("/".equals(allowedPath)) {
+            return true;
+        }
+
+        String responsePath = normalizedPath(responseUrl);
+        return responsePath.equals(allowedPath)
+                || responsePath.startsWith(allowedPath + "/");
+    }
+
+    private String normalizedPath(URI uri) {
+        String path = Objects.requireNonNullElse(uri.normalize().getRawPath(), "/");
+        if (path.length() > 1 && path.endsWith("/")) {
+            return path.substring(0, path.length() - 1);
+        }
+
+        return path;
     }
 }
