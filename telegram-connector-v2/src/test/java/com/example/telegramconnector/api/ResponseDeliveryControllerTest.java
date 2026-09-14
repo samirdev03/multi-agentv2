@@ -13,6 +13,8 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -27,12 +29,20 @@ class ResponseDeliveryControllerTest {
     private ResponseDeliveryService responseDeliveryService;
 
     @Test
-    void deliverResponse_withValidBody_returnsAcceptedAndDelegatesToService() throws Exception {
+    void deliverResponse_withGenericContentAndPdfAttachment_returnsAcceptedAndDelegatesToService() throws Exception {
         // Given
         String requestJson = """
                 {
+                  "channelType": "TELEGRAM",
                   "channelId": "test-channel-123",
-                  "message": "Antwort vom Agenten"
+                  "content": "Antwort vom Agenten",
+                  "attachments": [
+                    {
+                      "path": "C:/files/answer.pdf",
+                      "fileName": "answer.pdf",
+                      "type": "PDF"
+                    }
+                  ]
                 }
                 """;
 
@@ -42,7 +52,10 @@ class ResponseDeliveryControllerTest {
                         .content(requestJson))
                 .andExpect(status().isAccepted());
 
-        verify(responseDeliveryService).deliver("test-channel-123", "Antwort vom Agenten");
+        verify(responseDeliveryService).deliver(
+                "test-channel-123",
+                "Antwort vom Agenten",
+                java.util.List.of(new FileAttachmentRequest("C:/files/answer.pdf", "answer.pdf", FileType.PDF)));
     }
 
     @Test
@@ -50,12 +63,14 @@ class ResponseDeliveryControllerTest {
         // Given
         String unknownChannelId = "unknown-channel-456";
         doThrow(new ChannelNotFoundException(unknownChannelId))
-                .when(responseDeliveryService).deliver(unknownChannelId, "Antwort vom Agenten");
+                .when(responseDeliveryService).deliver(eq(unknownChannelId), eq("Antwort vom Agenten"), anyList());
 
         String requestJson = """
                 {
+                  "channelType": "TELEGRAM",
                   "channelId": "%s",
-                  "message": "Antwort vom Agenten"
+                  "content": "Antwort vom Agenten",
+                  "attachments": []
                 }
                 """.formatted(unknownChannelId);
 

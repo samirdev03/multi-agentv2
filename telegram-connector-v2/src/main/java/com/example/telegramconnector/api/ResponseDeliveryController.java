@@ -24,7 +24,7 @@ public class ResponseDeliveryController {
 
     @PostMapping("/api/v1/responses")
     @ResponseStatus(HttpStatus.ACCEPTED)
-    public void deliverResponse(@RequestBody DeliverResponseRequest request) {
-        responseDeliveryService.deliver(request.channelId(), request.message());
+    public void deliverResponse(@RequestBody GenericResponseRequest request) {
+        responseDeliveryService.deliver(request.channelId(), request.content(), request.attachments());
     }
 }
