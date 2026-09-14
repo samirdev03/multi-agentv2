@@ -9,23 +9,25 @@ HTTP-Aufrufe verbleiben ausschließlich im Telegram Connector.
 ## Transportvertrag
 
 Der Endpoint `POST /api/v1/messages` akzeptiert ein konkretes generisches
-`RequestDto` mit den Feldern `channelType`, `channelId` und `content`.
+`RequestDto` mit den Feldern `channelType`, `channelId`, `content` und `responseUrl`.
 
 Die Runtime sendet nach asynchroner Verarbeitung ein konkretes generisches
-`ResponseDto` an den konfigurierten Response-Endpoint. Dieses DTO enthält
+`ResponseDto` an die im Request übermittelte `responseUrl`. Dieses DTO enthält
 `channelType`, `channelId`, `content` und `attachments`. Jeder Anhang enthält
 `path`, `fileName` und `type` (`PDF`, `TEXT`, `IMAGE`, `FILE`).
 
 Der Vertrag verwendet keine Java-Interface-Deserialisierung und keine
 channel-spezifischen DTOs. Dadurch können weitere Connectoren denselben Endpoint
-verwenden.
+verwenden. Die Runtime prüft die Callback-Adresse gegen eine konfigurierbare
+Allowlist vertrauenswürdiger Connector-Basis-URLs.
 
 ## Verarbeitung
 
-1. Der Telegram Connector wandelt einen Telegram-Text in das generische Request-DTO.
+1. Der Telegram Connector wandelt einen Telegram-Text in das generische Request-DTO
+   und setzt seine `/api/v1/responses`-Adresse als `responseUrl`.
 2. Die Runtime verarbeitet das DTO und erzeugt ein generisches Response-DTO.
-3. Die Runtime POSTet dieses DTO an den bereits bestehenden Response-Endpoint des
-   Connectors.
+3. Die Runtime validiert `responseUrl` und POSTet dieses DTO an den Response-Endpoint
+   des aufrufenden Connectors.
 4. Der Telegram Connector liefert `content` als Text aus und verarbeitet die
    Anhänge nacheinander: `IMAGE` mit Telegram `sendPhoto`, alle übrigen Typen mit
    `sendDocument`.
