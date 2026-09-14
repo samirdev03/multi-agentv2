@@ -24,8 +24,8 @@ public class AgentService {
             ChannelType channelType,
             String channelId
     ) {
-        return agentRepository.findByChannel(
-                channelType,
+        return agentRepository.findFirstByChannels_TypeAndChannels_ChannelId(
+                channelType.name(),
                 channelId
         );
     }

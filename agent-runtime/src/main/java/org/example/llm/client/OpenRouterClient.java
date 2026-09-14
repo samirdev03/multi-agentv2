@@ -7,6 +7,7 @@ import org.example.api.dto.RequestDto;
 import org.example.api.dto.ResponseDto;
 import org.example.config.Credential;
 import org.example.config.CredentialRegistry;
+import org.example.tools.ToolRegistry;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.openai.OpenAiChatModel;
 import org.springframework.ai.openai.OpenAiChatOptions;
@@ -20,6 +21,7 @@ import java.util.Map;
 public class OpenRouterClient implements Client {
 
     private final CredentialRegistry credentialRegistry;
+    private final ToolRegistry toolRegistry;
 
     @Override
     public ResponseDto getResponse(
@@ -47,15 +49,23 @@ public class OpenRouterClient implements Client {
 
         ChatClient chatClient = ChatClient.create(chatModel);
 
-        String content = chatClient
+        ChatClient.ChatClientRequestSpec requestSpec = chatClient
                 .prompt()
                 .system(agent.getSystemPrompt())
-                .user(request.getContent())
-                .tools(agent.getAgentId())
+                .user(request.getContent());
+
+        if (!agent.getToolIds().isEmpty()) {
+            requestSpec = requestSpec.tools(agent.getToolIds().stream()
+                    .map(toolRegistry::get)
+                    .toArray(Object[]::new));
+        }
+
+        String content = requestSpec
                 .toolContext(Map.of(
                         "agentId", agent.getAgentId(),
                         "channelType", request.getChannelType(),
-                        "channelId", request.getChannelId()
+                        "channelId", request.getChannelId(),
+                        "responseUrl", request.responseUrl()
                 ))
                 .call()
                 .content();

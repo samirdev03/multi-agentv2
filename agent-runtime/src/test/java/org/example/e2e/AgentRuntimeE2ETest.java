@@ -1,9 +1,10 @@
 package org.example.e2e;
 
 import org.example.agent.AgentEntity;
+import org.example.agent.AgentChannelEntity;
 import org.example.agent.AgentRepository;
-import org.example.api.dto.TelegramRequestDto;
-import org.example.llm.client.channel.TelegramChannel;
+import org.example.api.dto.GenericResponseDto;
+import org.example.callback.CallbackResponseClient;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIf;
@@ -23,6 +24,8 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.net.URI;
+import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -32,9 +35,8 @@ import static org.mockito.Mockito.verify;
 /**
  * End-to-end test for the agent-runtime module.
  *
- * Sends real Telegram messages to the runtime API ({@code POST /api/v1/messages}) and verifies
- * that a real AI answer comes back (captured at the {@link TelegramChannel} boundary, which in
- * production POSTs the answer to the telegram-connector under {@code /api/v1/responses}).
+ * Sends generic messages to the runtime API ({@code POST /api/v1/messages}) and verifies
+ * that a real AI answer is submitted to the configured callback boundary.
  *
  * The OpenRouter LLM backend is intentionally NOT mocked - answers are fetched from the real
  * OpenRouter API using the free model {@code nex-agi/nex-n2.5-mini:free}. The API key is resolved
@@ -65,12 +67,11 @@ class AgentRuntimeE2ETest {
     }
 
     /**
-     * Only the delivery boundary is mocked: {@link TelegramChannel} would POST the AI answer to
-     * the telegram-connector, which is not running here. Capturing the call lets the test assert
+     * Only the generic callback boundary is mocked. Capturing the callback lets the test assert
      * that a real LLM answer was produced and carried the correct channelId.
      */
     @MockitoBean
-    private TelegramChannel telegramChannel;
+    private CallbackResponseClient callbackResponseClient;
 
     @Autowired
     private TestRestTemplate restTemplate;
@@ -142,14 +143,16 @@ class AgentRuntimeE2ETest {
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
 
-        TelegramRequestDto delivered = awaitDeliveredAnswer();
+        GenericResponseDto delivered = awaitDeliveredAnswer();
         assertThat(delivered.channelId()).isEqualTo(channelId);
-        assertThat(delivered.message()).isNotBlank();
-        assertThat(delivered.message().length()).isGreaterThanOrEqualTo(3);
+        assertThat(delivered.content()).isNotBlank();
+        assertThat(delivered.content().length()).isGreaterThanOrEqualTo(3);
 
         // Without a registered channelId the runtime must have created and persisted a fallback
         // agent (FALLBACK_PROMPT) instead of failing or dropping the channel.
-        AgentEntity fallbackAgent = agentRepository.findByChannelId(channelId).orElseThrow();
+        AgentEntity fallbackAgent = agentRepository
+                .findFirstByChannels_ChannelId(channelId)
+                .orElseThrow();
         assertThat(fallbackAgent.getSystemPrompt()).contains("Fallback Agent");
         assertThat(agentRepository.count()).isEqualTo(agentsBefore + 1);
     }
@@ -163,10 +166,15 @@ class AgentRuntimeE2ETest {
         AgentEntity registered = AgentEntity.builder()
                 .name("Registered E2E Agent")
                 .systemPrompt(customPrompt)
-                .channelId(channelId)
                 .provider("openrouter")
                 .modelId(FREE_MODEL)
                 .build();
+        AgentChannelEntity channel = AgentChannelEntity.builder()
+                .type(CONNECTOR_WIRE_CHANNEL_TYPE)
+                .channelId(channelId)
+                .agent(registered)
+                .build();
+        registered.setChannels(List.of(channel));
         registered = agentRepository.saveAndFlush(registered);
         long agentsBefore = agentRepository.count();
 
@@ -174,28 +182,27 @@ class AgentRuntimeE2ETest {
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
 
-        TelegramRequestDto delivered = awaitDeliveredAnswer();
+        GenericResponseDto delivered = awaitDeliveredAnswer();
         assertThat(delivered.channelId()).isEqualTo(channelId);
-        assertThat(delivered.message()).isNotBlank();
-        assertThat(delivered.message().length()).isGreaterThanOrEqualTo(3);
+        assertThat(delivered.content()).isNotBlank();
+        assertThat(delivered.content().length()).isGreaterThanOrEqualTo(3);
 
         // The pre-registered agent must be the one used: same row id, custom prompt intact, and
         // no additional (fallback) agent row created for the already-registered channel.
         AgentEntity loaded = agentRepository.findById(registered.getAgentId()).orElseThrow();
         assertThat(loaded.getSystemPrompt()).isEqualTo(customPrompt);
-        assertThat(agentRepository.findByChannelId(channelId).orElseThrow().getSystemPrompt())
+        assertThat(agentRepository.findFirstByChannels_ChannelId(channelId).orElseThrow().getSystemPrompt())
                 .isEqualTo(customPrompt);
         assertThat(agentRepository.count()).isEqualTo(agentsBefore);
     }
 
     private ResponseEntity<Void> postMessage(String channelId, String userMessage) throws Exception {
-        // Body mirrors the exact wire contract of the telegram-connector's AgentRuntimeClient
-        // (IncomingMessageRequest: channelId, channelType, message). The runtime ignores the extra
-        // channelType field, exactly as it does in production.
+        // Body mirrors the generic wire contract used by connector clients.
         String body = objectMapper.writeValueAsString(Map.of(
                 "channelId", channelId,
                 "channelType", CONNECTOR_WIRE_CHANNEL_TYPE,
-                "message", userMessage
+                "content", userMessage,
+                "responseUrl", "http://telegram-connector:8080/api/v1/responses"
         ));
 
         HttpHeaders headers = new HttpHeaders();
@@ -205,11 +212,12 @@ class AgentRuntimeE2ETest {
         return restTemplate.postForEntity("/api/v1/messages", request, Void.class);
     }
 
-    private TelegramRequestDto awaitDeliveredAnswer() {
-        ArgumentCaptor<TelegramRequestDto> captor = ArgumentCaptor.forClass(TelegramRequestDto.class);
+    private GenericResponseDto awaitDeliveredAnswer() {
+        ArgumentCaptor<GenericResponseDto> captor = ArgumentCaptor.forClass(GenericResponseDto.class);
         // The runtime flow (LLM call + delivery) is synchronous within the POST /api/v1/messages
         // request; the timeout only guards against slow real LLM responses.
-        verify(telegramChannel, timeout(30_000)).sendMessage(captor.capture());
+        verify(callbackResponseClient, timeout(30_000))
+                .sendResponse(org.mockito.ArgumentMatchers.any(URI.class), captor.capture());
         return captor.getValue();
     }
 }
