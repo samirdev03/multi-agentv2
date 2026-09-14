@@ -2,14 +2,17 @@ package org.example.Service;
 
 import lombok.RequiredArgsConstructor;
 import org.example.agent.AgentEntity;
+import org.example.agent.AgentChannelEntity;
 import org.example.agent.AgentService;
-import org.example.api.dto.RequestDto;
+import org.example.api.dto.GenericRequestDto;
+import org.example.api.dto.GenericResponseDto;
 import org.example.api.dto.ResponseDto;
+import org.example.callback.CallbackResponseClient;
 import org.example.llm.client.Client;
 import org.example.llm.client.ClientRegistry;
-import org.example.llm.client.channel.Channel;
-import org.example.llm.client.channel.ChannelRegistry;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -30,14 +33,9 @@ public class RequestProcessingService {
 
     private final AgentService agentService;
     private final ClientRegistry clientRegistry;
-    private final ChannelRegistry channelRegistry;
+    private final CallbackResponseClient callbackResponseClient;
 
-    public void process(RequestDto request) {
-
-        // 1. Passenden Channel Client laden
-        Channel channel = channelRegistry.getChannel(
-                request.getChannelType()
-        );
+    public void process(GenericRequestDto request) {
 
         // 2. Agent laden oder erstellen
         AgentEntity agent = agentService
@@ -55,25 +53,20 @@ public class RequestProcessingService {
         );
 
         // 4. LLM Response holen
-        String content = client
-                .getResponse(
-                        agent,
-                        request
-                )
-                .content();
+        ResponseDto clientResponse = client.getResponse(agent, request);
 
-        // 5. Channel-spezifische Response bauen
-        ResponseDto response = channel.buildResponse(
-                content,
-                request.getChannelId()
+        GenericResponseDto response = new GenericResponseDto(
+                request.getChannelType(),
+                request.getChannelId(),
+                clientResponse.getContent(),
+                clientResponse.getAttachments()
         );
 
-        // 6. Über denselben Channel zurücksenden
-        channel.sendResponse(response);
+        callbackResponseClient.sendResponse(request.responseUrl(), response);
     }
 
     private AgentEntity createDefaultAgent(
-            RequestDto request
+            GenericRequestDto request
     ) {
 
         AgentEntity agent = AgentEntity.builder()
@@ -83,10 +76,12 @@ public class RequestProcessingService {
                 .modelId(DEFAULT_MODEL)
                 .build();
 
-        agent.addChannel(
-                request.getChannelType(),
-                request.getChannelId()
-        );
+        AgentChannelEntity channel = AgentChannelEntity.builder()
+                .type(request.getChannelType().name())
+                .channelId(request.getChannelId())
+                .agent(agent)
+                .build();
+        agent.setChannels(List.of(channel));
 
         return agentService.saveAgent(agent);
     }
