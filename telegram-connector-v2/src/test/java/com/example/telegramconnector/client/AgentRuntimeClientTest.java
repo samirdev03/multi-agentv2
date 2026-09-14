@@ -39,7 +39,7 @@ class AgentRuntimeClientTest {
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     @Test
-    void sendAsync_postsToV1MessagesEndpointWithChannelTypeAndMessage() throws Exception {
+    void sendAsync_postsGenericRequestWithCallbackUrl() throws Exception {
         // Given
         AtomicReference<ClientRequest> capturedRequest = new AtomicReference<>();
         WebClient.Builder stubbedBuilder = WebClient.builder()
@@ -69,7 +69,9 @@ class AgentRuntimeClientTest {
         assertThat(body)
                 .containsEntry("channelId", "test-channel-123")
                 .containsEntry("channelType", "TELEGRAM")
-                .containsEntry("message", "Hallo Welt");
+                .containsEntry("content", "Hallo Welt")
+                .containsEntry("responseUrl", "https://public.example.com/api/v1/responses")
+                .doesNotContainKey("message");
     }
 
     private static String extractBody(ClientRequest request) {

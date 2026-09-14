@@ -1,5 +1,7 @@
 package com.example.telegramconnector.client;
 
+import com.example.telegramconnector.api.FileAttachmentRequest;
+import com.example.telegramconnector.api.FileType;
 import com.example.telegramconnector.domain.TelegramChannel;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
@@ -17,6 +19,8 @@ import org.springframework.web.util.UriComponents;
 import org.springframework.web.util.UriComponentsBuilder;
 import reactor.core.publisher.Mono;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.net.URI;
 import java.util.Collections;
 import java.util.List;
@@ -64,6 +68,56 @@ class TelegramBotClientTest {
         assertThat(body)
                 .containsEntry("chat_id", channel.getChannelId())
                 .containsEntry("text", "Hallo zurueck");
+    }
+
+    @Test
+    void sendPhoto_postsMultipartPhotoWithChatId() throws Exception {
+        AtomicReference<ClientRequest> capturedRequest = new AtomicReference<>();
+        TelegramBotClient client = new TelegramBotClient(stubbedBuilder(capturedRequest));
+        TelegramChannel channel = new TelegramChannel("test-channel-123", "Test Channel", "bot-token-123");
+        Path image = Files.createTempFile("telegram-upload-", ".png");
+        Files.writeString(image, "image-content");
+
+        client.sendPhoto(channel, new FileAttachmentRequest(image.toString(), "chart.png", FileType.IMAGE)).block();
+
+        assertMultipartUpload(capturedRequest.get(), channel, "/sendPhoto", "photo", "image-content");
+    }
+
+    @Test
+    void sendDocument_postsMultipartDocumentWithChatId() throws Exception {
+        AtomicReference<ClientRequest> capturedRequest = new AtomicReference<>();
+        TelegramBotClient client = new TelegramBotClient(stubbedBuilder(capturedRequest));
+        TelegramChannel channel = new TelegramChannel("test-channel-123", "Test Channel", "bot-token-123");
+        Path document = Files.createTempFile("telegram-upload-", ".pdf");
+        Files.writeString(document, "pdf-content");
+
+        client.sendDocument(channel, new FileAttachmentRequest(document.toString(), "answer.pdf", FileType.PDF)).block();
+
+        assertMultipartUpload(capturedRequest.get(), channel, "/sendDocument", "document", "pdf-content");
+    }
+
+    private static WebClient.Builder stubbedBuilder(AtomicReference<ClientRequest> capturedRequest) {
+        return WebClient.builder().exchangeFunction(request -> {
+            capturedRequest.set(request);
+            return Mono.just(ClientResponse.create(HttpStatus.OK).build());
+        });
+    }
+
+    private static void assertMultipartUpload(
+            ClientRequest request,
+            TelegramChannel channel,
+            String endpoint,
+            String fileField,
+            String fileContent) {
+        assertThat(request.method()).isEqualTo(HttpMethod.POST);
+        assertThat(request.url().getPath()).isEqualTo("/bot" + channel.getBotToken() + endpoint);
+
+        String body = extractBody(request);
+        assertThat(body)
+                .contains("name=\"chat_id\"")
+                .contains(channel.getChannelId())
+                .contains("name=\"" + fileField + "\"")
+                .contains(fileContent);
     }
 
     private static String extractBody(ClientRequest request) {

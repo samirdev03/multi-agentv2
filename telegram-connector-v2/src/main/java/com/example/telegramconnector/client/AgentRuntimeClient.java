@@ -11,12 +11,14 @@ import reactor.core.publisher.Mono;
 public class AgentRuntimeClient {
 
     private final WebClient webClient;
+    private final String responseUrl;
 
     public AgentRuntimeClient(WebClient.Builder webClientBuilder,
                                TelegramConnectorProperties properties) {
         this.webClient = webClientBuilder
                 .baseUrl(properties.agentRuntimeBaseUrl())
                 .build();
+        this.responseUrl = properties.publicBaseUrl() + "/api/v1/responses";
     }
 
     /**
@@ -26,7 +28,10 @@ public class AgentRuntimeClient {
      */
     public Mono<Void> sendAsync(TelegramMessage message) {
         IncomingMessageRequest request = new IncomingMessageRequest(
-                message.channelId(), ChannelType.TELEGRAM, message.message());
+                ChannelType.TELEGRAM,
+                message.channelId(),
+                message.message(),
+                responseUrl);
 
         return webClient.post()
                 .uri("/api/v1/messages")
@@ -36,6 +41,10 @@ public class AgentRuntimeClient {
                 .then();
     }
 
-    private record IncomingMessageRequest(String channelId, ChannelType channelType, String message) {
+    private record IncomingMessageRequest(
+            ChannelType channelType,
+            String channelId,
+            String content,
+            String responseUrl) {
     }
 }
