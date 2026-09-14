@@ -14,12 +14,15 @@ Der Endpoint `POST /api/v1/messages` akzeptiert ein konkretes generisches
 Die Runtime sendet nach asynchroner Verarbeitung ein konkretes generisches
 `ResponseDto` an die im Request übermittelte `responseUrl`. Dieses DTO enthält
 `channelType`, `channelId`, `content` und `attachments`. Jeder Anhang enthält
-`path`, `fileName` und `type` (`PDF`, `TEXT`, `IMAGE`, `FILE`).
+`fileName`, `type` (`PDF`, `TEXT`, `IMAGE`, `FILE`) und den Dateiinhalt als
+Base64-kodierte Bytes. Lokale Dateipfade sind kein Teil des Wire-Vertrags.
 
 Der Vertrag verwendet keine Java-Interface-Deserialisierung und keine
 channel-spezifischen DTOs. Dadurch können weitere Connectoren denselben Endpoint
 verwenden. Die Runtime prüft die Callback-Adresse gegen eine konfigurierbare
-Allowlist vertrauenswürdiger Connector-Basis-URLs.
+Allowlist vertrauenswürdiger Connector-Basis-URLs. Beide Services verwenden
+zusätzlich ein per Umgebungsvariable gesetztes Callback-Token; der Connector
+weist Anfragen ohne korrektes Token ab.
 
 ## Verarbeitung
 
@@ -35,8 +38,9 @@ Allowlist vertrauenswürdiger Connector-Basis-URLs.
 ## Fehlerbehandlung
 
 Die bestehenden Connector-Retries bleiben für Runtime-Aufrufe und Telegram-API-Aufrufe
-erhalten. Ungültige oder nicht existierende Anhangpfade werden vor dem Upload klar
-abgewiesen. Eine leere Anhangliste ist zulässig.
+erhalten. Die Runtime liest nur Dateien aus ihrem eigenen Tool-Kontext, begrenzt deren
+Größe konfigurierbar und serialisiert ausschließlich die gelesenen Bytes. Eine leere
+Anhangliste ist zulässig.
 
 ## Tests
 

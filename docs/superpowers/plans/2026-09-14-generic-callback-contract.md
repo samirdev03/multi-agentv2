@@ -92,3 +92,28 @@
 - [ ] Run `mvn -pl telegram-connector-v2 -Dtest=TelegramBotClientTest test`; expect failure because only JSON `sendMessage` exists.
 - [ ] Implement multipart `sendPhoto` and `sendDocument`, sending captions when nonblank and file content as `FileSystemResource`.
 - [ ] Run `mvn -pl telegram-connector-v2 test` and `mvn -pl agent-runtime test`; expect both module suites to pass.
+
+### Task 5: Secure cross-container attachment transfer
+
+**Files:**
+- Modify: `agent-runtime/src/main/java/org/example/api/dto/FileAttachmentDto.java`
+- Modify: `agent-runtime/src/main/java/org/example/tools/service/SendMessageService.java`
+- Modify: `agent-runtime/src/main/java/org/example/callback/CallbackResponseClient.java`
+- Modify: `agent-runtime/src/main/resources/application.properties`
+- Modify: `telegram-connector-v2/src/main/java/com/example/telegramconnector/api/FileAttachmentRequest.java`
+- Modify: `telegram-connector-v2/src/main/java/com/example/telegramconnector/client/TelegramBotClient.java`
+- Modify: `telegram-connector-v2/src/main/java/com/example/telegramconnector/api/ResponseDeliveryController.java`
+- Modify: `telegram-connector-v2/src/main/resources/application.yml`
+- Modify: `docker-compose.yml`
+- Test: `agent-runtime/src/test/java/org/example/tools/service/SendMessageServiceTest.java`
+- Test: `telegram-connector-v2/src/test/java/com/example/telegramconnector/api/ResponseDeliveryControllerTest.java`
+- Test: `telegram-connector-v2/src/test/java/com/example/telegramconnector/client/TelegramBotClientTest.java`
+
+- [ ] Write a failing runtime test proving a local tool file becomes attachment bytes and a file beyond the configured limit is rejected.
+- [ ] Write a failing connector-controller test proving missing or invalid callback token returns `401` and the matching token is accepted.
+- [ ] Run the focused tests; expect failures because attachments still expose paths and the callback is unauthenticated.
+- [ ] Replace the attachment path with `byte[] content`; read and size-check the file only in the runtime, then POST the bytes and an `X-Connector-Token` header.
+- [ ] Require a nonblank configured token in the connector, compare it in constant time, and reject unauthenticated callbacks before dispatch.
+- [ ] Use the received bytes through a named `ByteArrayResource` for Telegram multipart uploads; never resolve a callback-supplied local path.
+- [ ] Configure the shared token exclusively via `CONNECTOR_CALLBACK_TOKEN` in both services and Docker Compose; add no secret defaults.
+- [ ] Run `mvnw.cmd -pl agent-runtime test` and `mvnw.cmd -pl telegram-connector-v2 test`; expect both module suites to pass.
