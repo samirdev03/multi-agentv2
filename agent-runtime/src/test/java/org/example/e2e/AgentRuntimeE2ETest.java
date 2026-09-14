@@ -2,7 +2,7 @@ package org.example.e2e;
 
 import org.example.agent.AgentEntity;
 import org.example.agent.AgentRepository;
-import org.example.api.dto.TelegramMessageDto;
+import org.example.api.dto.TelegramRequestDto;
 import org.example.llm.client.channel.TelegramChannel;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -142,7 +142,7 @@ class AgentRuntimeE2ETest {
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
 
-        TelegramMessageDto delivered = awaitDeliveredAnswer();
+        TelegramRequestDto delivered = awaitDeliveredAnswer();
         assertThat(delivered.channelId()).isEqualTo(channelId);
         assertThat(delivered.message()).isNotBlank();
         assertThat(delivered.message().length()).isGreaterThanOrEqualTo(3);
@@ -174,7 +174,7 @@ class AgentRuntimeE2ETest {
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
 
-        TelegramMessageDto delivered = awaitDeliveredAnswer();
+        TelegramRequestDto delivered = awaitDeliveredAnswer();
         assertThat(delivered.channelId()).isEqualTo(channelId);
         assertThat(delivered.message()).isNotBlank();
         assertThat(delivered.message().length()).isGreaterThanOrEqualTo(3);
@@ -205,8 +205,8 @@ class AgentRuntimeE2ETest {
         return restTemplate.postForEntity("/api/v1/messages", request, Void.class);
     }
 
-    private TelegramMessageDto awaitDeliveredAnswer() {
-        ArgumentCaptor<TelegramMessageDto> captor = ArgumentCaptor.forClass(TelegramMessageDto.class);
+    private TelegramRequestDto awaitDeliveredAnswer() {
+        ArgumentCaptor<TelegramRequestDto> captor = ArgumentCaptor.forClass(TelegramRequestDto.class);
         // The runtime flow (LLM call + delivery) is synchronous within the POST /api/v1/messages
         // request; the timeout only guards against slow real LLM responses.
         verify(telegramChannel, timeout(30_000)).sendMessage(captor.capture());

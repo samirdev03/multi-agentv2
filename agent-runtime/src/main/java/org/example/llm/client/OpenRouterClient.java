@@ -2,29 +2,29 @@ package org.example.llm.client;
 
 import lombok.RequiredArgsConstructor;
 import org.example.agent.AgentEntity;
+import org.example.api.dto.GenericResponseDto;
+import org.example.api.dto.RequestDto;
+import org.example.api.dto.ResponseDto;
 import org.example.config.Credential;
 import org.example.config.CredentialRegistry;
-import org.example.llm.dto.ResponseDto;
-import org.example.tools.DateTimeTools;
-
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.openai.OpenAiChatModel;
 import org.springframework.ai.openai.OpenAiChatOptions;
 import org.springframework.ai.openai.api.OpenAiApi;
-
 import org.springframework.stereotype.Component;
+
+import java.util.Map;
 
 @Component
 @RequiredArgsConstructor
 public class OpenRouterClient implements Client {
 
     private final CredentialRegistry credentialRegistry;
-    private final DateTimeTools dateTimeTools;
 
     @Override
     public ResponseDto getResponse(
             AgentEntity agent,
-            String userMessage
+            RequestDto request
     ) {
 
         Credential credential =
@@ -50,11 +50,13 @@ public class OpenRouterClient implements Client {
         String content = chatClient
                 .prompt()
                 .system(agent.getSystemPrompt())
-                .user(userMessage)
-
-                // Hier bekommt der Agent seine Tools
+                .user(request.getContent())
                 .tools(agent.getAgentId())
-
+                .toolContext(Map.of(
+                        "agentId", agent.getAgentId(),
+                        "channelType", request.getChannelType(),
+                        "channelId", request.getChannelId()
+                ))
                 .call()
                 .content();
 
@@ -64,6 +66,10 @@ public class OpenRouterClient implements Client {
             );
         }
 
-        return new ResponseDto(content);
+        return new GenericResponseDto(
+                request.getChannelType(),
+                request.getChannelId(),
+                content
+        );
     }
 }

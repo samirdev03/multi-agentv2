@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 @Entity
@@ -26,8 +27,13 @@ public class AgentEntity {
     @Column(columnDefinition = "systemPrompt")
     private String systemPrompt;
 
-    @Column(columnDefinition = "channelId")
-    private String channelId;
+    @OneToMany(
+            mappedBy = "agent",
+            cascade = CascadeType.ALL,
+            orphanRemoval = true
+    )
+    private List<AgentChannelEntity> channels;
+
 
     @Column(columnDefinition = "modelId")
     private String modelId;
