@@ -7,6 +7,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 import java.util.UUID;
+import java.util.List;
 
 @Component
 public class AgentRuntimeClient {
@@ -34,7 +35,8 @@ public class AgentRuntimeClient {
                 ChannelType.TELEGRAM,
                 message.channelId(),
                 message.message(),
-                callbackBaseUrl + "/api/v1/responses/" + message.channelId());
+                callbackBaseUrl + "/api/v1/responses/" + message.channelId(),
+                message.files().stream().map(file -> new IncomingFile(file.fileName(), file.contentType(), file.content())).toList());
 
         return webClient.post()
                 .uri("/api/v1/messages")
@@ -49,6 +51,9 @@ public class AgentRuntimeClient {
             ChannelType channelType,
             String channelId,
             String content,
-            String responseUrl) {
+            String responseUrl,
+            List<IncomingFile> files) {
     }
+
+    private record IncomingFile(String fileName, String contentType, byte[] content) { }
 }

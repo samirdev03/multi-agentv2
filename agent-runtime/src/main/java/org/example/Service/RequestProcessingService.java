@@ -15,6 +15,9 @@ import org.springframework.scheduling.annotation.Async;
 import org.example.session.MessageTurnEntity;
 import org.example.session.MessageTurnRepository;
 import org.example.llm.client.OpenRouterModelCatalogClient;
+import org.example.tools.service.FileReadService;
+import org.example.web.dto.IncomingFileDto;
+import java.util.stream.Collectors;
 
 import java.util.List;
 
@@ -45,6 +48,7 @@ public class RequestProcessingService {
     private final CallbackResponseClient callbackResponseClient;
     private final MessageTurnRepository messageTurnRepository;
     private final OpenRouterModelCatalogClient modelCatalogClient;
+    private final FileReadService fileReadService;
 
     @Async
     public void process(GenericRequestDto request) {
@@ -66,13 +70,15 @@ public class RequestProcessingService {
                 )
                 .orElseGet(() -> createDefaultAgent(request));
 
+        GenericRequestDto requestWithFiles = persistIncomingFiles(request);
+
         // 3. Provider Client laden
         Client client = clientRegistry.getClient(
                 agent.getProvider()
         );
 
         // 4. LLM Response holen
-        ResponseDto clientResponse = client.getResponse(agent, request);
+        ResponseDto clientResponse = client.getResponse(agent, requestWithFiles);
 
         GenericResponseDto response = new GenericResponseDto(
                 request.getChannelType(),
@@ -104,6 +110,18 @@ public class RequestProcessingService {
         agent.setChannels(List.of(channel));
 
         return agentService.saveAgent(agent);
+    }
+
+    private GenericRequestDto persistIncomingFiles(GenericRequestDto request) {
+        if (request.files().isEmpty()) return request;
+        String files = request.files().stream().map(file -> {
+            fileReadService.store(request.getChannelId(), file);
+            return file.fileName();
+        }).collect(Collectors.joining(", "));
+        String content = request.getContent() + "\n\nVom Benutzer bereitgestellte Dateien: " + files
+                + ". Verwende das Tool fileread mit dem exakten Dateinamen, wenn du sie analysieren musst.";
+        return new GenericRequestDto(request.getChannelType(), request.getChannelId(), content,
+                request.responseUrl(), request.requestId(), request.files());
     }
 
     private String resolveFallbackModel() {

@@ -35,9 +35,20 @@ public class TelegramWebhookController {
         }
 
         String text = extractText(update);
-        if (text != null) {
+        String fileId = null;
+        String fileName = null;
+        String contentType = null;
+        if (update.hasMessage() && update.getMessage().hasDocument()) {
+            var document = update.getMessage().getDocument();
+            fileId = document.getFileId();
+            fileName = document.getFileName();
+            contentType = document.getMimeType();
+        }
+        if (text != null || fileId != null) {
             Long chatId = update.hasMessage() && update.getMessage().getChat() != null ? update.getMessage().getChat().getId() : null;
-            forwardingService.forward(channel, text, chatId, update.getUpdateId() == null ? null : update.getUpdateId().longValue());
+            Long updateId = update.getUpdateId() == null ? null : update.getUpdateId().longValue();
+            if (fileId == null) forwardingService.forward(channel, text, chatId, updateId);
+            else forwardingService.forward(channel, text, chatId, updateId, fileId, fileName, contentType);
         }
         // Telegram erwartet zuegig eine 200er-Antwort, unabhaengig davon, ob Textinhalt
         // vorhanden war - sonst wiederholt Telegram den Zustellversuch.

@@ -8,6 +8,8 @@ import org.springframework.stereotype.Component;
 import org.springframework.http.client.MultipartBodyBuilder;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
+import com.example.telegramconnector.domain.TelegramFile;
+import com.fasterxml.jackson.databind.JsonNode;
 
 @Component
 public class TelegramBotClient {
@@ -33,6 +35,15 @@ public class TelegramBotClient {
                 .retrieve()
                 .toBodilessEntity()
                 .then();
+    }
+
+    public Mono<TelegramFile> downloadFile(TelegramChannel channel, String fileId, String fileName, String contentType) {
+        return webClient.get().uri("/bot{botToken}/getFile?file_id={fileId}", channel.getBotToken(), fileId)
+                .retrieve().bodyToMono(JsonNode.class)
+                .map(json -> json.path("result").path("file_path").asText())
+                .flatMap(filePath -> webClient.get().uri("https://api.telegram.org/file/bot{botToken}/{filePath}", channel.getBotToken(), filePath)
+                        .retrieve().bodyToMono(byte[].class)
+                        .map(bytes -> new TelegramFile(fileId, fileName, contentType, bytes)));
     }
 
     public Mono<Void> sendPhoto(TelegramChannel channel, FileAttachmentRequest attachment) {
