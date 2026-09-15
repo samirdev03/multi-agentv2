@@ -43,6 +43,11 @@ COPY --from=extract --chown=spring:spring /extract/spring-boot-loader/ ./
 COPY --from=extract --chown=spring:spring /extract/snapshot-dependencies/ ./
 COPY --from=extract --chown=spring:spring /extract/application/ ./
 
+# The application writes generated files below the working directory.  The
+# image runs as the unprivileged spring user, so create and own that subtree
+# during the image build instead of relying on /app (owned by root).
+RUN mkdir -p /app/agent/ai/files && chown -R spring:spring /app/agent
+
 # Anwendung nicht als root ausführen
 USER spring:spring
 
