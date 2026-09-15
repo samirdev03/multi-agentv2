@@ -1,9 +1,12 @@
 package org.example.tools.service;
 
 import lombok.RequiredArgsConstructor;
-import org.example.api.dto.*;
 import org.example.callback.CallbackResponseClient;
 import org.example.tools.config.FileToolsProperties;
+import org.example.web.dto.ChannelType;
+import org.example.web.dto.FileAttachmentDto;
+import org.example.web.dto.FileType;
+import org.example.web.dto.GenericResponseDto;
 import org.springframework.stereotype.Service;
 
 import java.io.File;

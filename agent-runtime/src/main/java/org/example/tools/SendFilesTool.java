@@ -1,7 +1,7 @@
 package org.example.tools;
 
 import lombok.RequiredArgsConstructor;
-import org.example.api.dto.ChannelType;
+import org.example.web.dto.ChannelType;
 import org.example.tools.service.SendMessageService;
 import org.springframework.ai.chat.model.ToolContext;
 import org.springframework.ai.tool.annotation.Tool;

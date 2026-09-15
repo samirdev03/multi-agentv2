@@ -20,6 +20,9 @@ public class AgentChannelEntity {
 
     private String channelId;
 
+    @Column(name = "response_url", length = 2048)
+    private String responseUrl;
+
     @ManyToOne
     @JoinColumn(name = "agent_id")
     private AgentEntity agent;

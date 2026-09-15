@@ -1,7 +1,9 @@
 package org.example.api.controller;
 
 import org.example.Service.RequestProcessingService;
-import org.example.api.dto.GenericRequestDto;
+import org.example.web.controller.MessageReceiver;
+import org.example.web.dto.GenericRequestDto;
+import org.example.web.dto.ChannelType;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -38,13 +40,13 @@ class MessageReceiverTest {
                                   "responseUrl": "http://connector:8080/api/v1/responses"
                                 }
                                 """))
-                .andExpect(status().isOk());
+                .andExpect(status().isAccepted());
 
         ArgumentCaptor<GenericRequestDto> requestCaptor = ArgumentCaptor.forClass(GenericRequestDto.class);
         verify(processingService).process(requestCaptor.capture());
 
         GenericRequestDto request = requestCaptor.getValue();
-        assertThat(request.channelType()).isEqualTo(org.example.api.dto.ChannelType.TELEGRAM);
+        assertThat(request.channelType()).isEqualTo(ChannelType.TELEGRAM);
         assertThat(request.channelId()).isEqualTo("12345");
         assertThat(request.content()).isEqualTo("Hello runtime");
         assertThat(request.responseUrl()).isEqualTo(URI.create("http://connector:8080/api/v1/responses"));

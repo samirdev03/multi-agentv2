@@ -6,6 +6,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 @Component
 @RequiredArgsConstructor
@@ -26,5 +27,9 @@ public class ClientRegistry {
      */
     public Client getClient(String provider) {
         return clients.get(provider);
+    }
+
+    public Set<String> providerCodes() {
+        return Set.copyOf(clients.keySet());
     }
 }

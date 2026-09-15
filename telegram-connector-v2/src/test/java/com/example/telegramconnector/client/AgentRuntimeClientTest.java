@@ -73,7 +73,7 @@ class AgentRuntimeClientTest {
                 .containsEntry("channelId", "test-channel-123")
                 .containsEntry("channelType", "TELEGRAM")
                 .containsEntry("content", "Hallo Welt")
-                .containsEntry("responseUrl", "http://telegram-connector.internal:8080/api/v1/responses")
+                .containsEntry("responseUrl", "http://telegram-connector.internal:8080/api/v1/responses/test-channel-123")
                 .doesNotContainKey("message");
     }
 

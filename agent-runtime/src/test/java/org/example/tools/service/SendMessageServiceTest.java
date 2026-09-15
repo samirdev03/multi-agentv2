@@ -1,8 +1,8 @@
 package org.example.tools.service;
 
-import org.example.api.dto.ChannelType;
-import org.example.api.dto.FileType;
-import org.example.api.dto.GenericResponseDto;
+import org.example.web.dto.ChannelType;
+import org.example.web.dto.FileType;
+import org.example.web.dto.GenericResponseDto;
 import org.example.callback.CallbackResponseClient;
 import org.example.tools.config.FileToolsProperties;
 import org.junit.jupiter.api.Test;

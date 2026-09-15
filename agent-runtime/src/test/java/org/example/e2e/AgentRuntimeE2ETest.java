@@ -3,7 +3,7 @@ package org.example.e2e;
 import org.example.agent.AgentEntity;
 import org.example.agent.AgentChannelEntity;
 import org.example.agent.AgentRepository;
-import org.example.api.dto.GenericResponseDto;
+import org.example.web.dto.GenericResponseDto;
 import org.example.callback.CallbackResponseClient;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -142,7 +142,7 @@ class AgentRuntimeE2ETest {
         ResponseEntity<Void> response = postMessage(channelId,
                 "Hallo, das ist eine E2E-Testnachricht für die Agent Runtime.");
 
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.ACCEPTED);
 
         GenericResponseDto delivered = awaitDeliveredAnswer();
         assertThat(delivered.channelId()).isEqualTo(channelId);
@@ -181,7 +181,7 @@ class AgentRuntimeE2ETest {
 
         ResponseEntity<Void> response = postMessage(channelId, "Teste mich bitte.");
 
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.ACCEPTED);
 
         GenericResponseDto delivered = awaitDeliveredAnswer();
         assertThat(delivered.channelId()).isEqualTo(channelId);

@@ -1,7 +1,7 @@
 package org.example.agent;
 
 import lombok.RequiredArgsConstructor;
-import org.example.api.dto.ChannelType;
+import org.example.web.dto.ChannelType;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;

@@ -17,13 +17,20 @@ public class TelegramMessageForwardingService {
     private static final Logger log = LoggerFactory.getLogger(TelegramMessageForwardingService.class);
 
     private final AgentRuntimeClient agentRuntimeClient;
+    private final TelegramChatChannelService chatChannels;
 
-    public TelegramMessageForwardingService(AgentRuntimeClient agentRuntimeClient) {
+    public TelegramMessageForwardingService(AgentRuntimeClient agentRuntimeClient, TelegramChatChannelService chatChannels) {
         this.agentRuntimeClient = agentRuntimeClient;
+        this.chatChannels = chatChannels;
     }
 
     public void forward(TelegramChannel channel, String rawText) {
-        TelegramMessage message = new TelegramMessage(rawText, channel.getChannelId());
+        forward(channel, rawText, null, null);
+    }
+
+    public void forward(TelegramChannel channel, String rawText, Long telegramChatId, Long updateId) {
+        String internalChannelId = telegramChatId == null ? channel.getChannelId() : chatChannels.resolve(telegramChatId, channel.getChannelId()).getChannelId();
+        TelegramMessage message = new TelegramMessage(rawText, internalChannelId, telegramChatId, updateId);
         agentRuntimeClient.sendAsync(message)
                 .retryWhen(Retry.backoff(3, Duration.ofMillis(500))
                         .filter(this::isTransientError))

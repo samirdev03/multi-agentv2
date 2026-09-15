@@ -19,6 +19,7 @@ import reactor.core.publisher.Mono;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.verify;
@@ -78,7 +79,9 @@ class TelegramWebhookIntegrationTest {
         // forward(...) ruft sendAsync(...).subscribe() fire-and-forget auf; verify(...,
         // timeout(...)) wartet deterministisch statt sofort zu assertieren oder blind zu schlafen.
         verify(agentRuntimeClient, timeout(2000))
-                .sendAsync(eq(new TelegramMessage("Hallo Welt", channelId)));
+                .sendAsync(argThat(message -> "Hallo Welt".equals(message.message())
+                        && Long.valueOf(42L).equals(message.telegramChatId())
+                        && Long.valueOf(1L).equals(message.updateId())));
     }
 
     @Test

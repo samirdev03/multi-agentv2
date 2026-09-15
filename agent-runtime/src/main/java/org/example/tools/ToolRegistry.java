@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.Set;
 
 @Component
 public class ToolRegistry {
@@ -32,5 +33,9 @@ public class ToolRegistry {
         }
 
         return tool;
+    }
+
+    public Set<String> toolIds() {
+        return Set.copyOf(tools.keySet());
     }
 }

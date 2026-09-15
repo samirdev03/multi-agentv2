@@ -36,7 +36,8 @@ public class TelegramWebhookController {
 
         String text = extractText(update);
         if (text != null) {
-            forwardingService.forward(channel, text);
+            Long chatId = update.hasMessage() && update.getMessage().getChat() != null ? update.getMessage().getChat().getId() : null;
+            forwardingService.forward(channel, text, chatId, update.getUpdateId() == null ? null : update.getUpdateId().longValue());
         }
         // Telegram erwartet zuegig eine 200er-Antwort, unabhaengig davon, ob Textinhalt
         // vorhanden war - sonst wiederholt Telegram den Zustellversuch.

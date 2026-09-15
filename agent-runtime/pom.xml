@@ -50,6 +50,12 @@
 
     <dependencies>
 
+        <dependency>
+            <groupId>org.springframework.shell</groupId>
+            <artifactId>spring-shell-starter</artifactId>
+            <version>3.3.2</version>
+        </dependency>
+
         <!-- Spring AI / OpenAI-kompatible APIs wie OpenRouter -->
         <dependency>
             <groupId>org.springframework.ai</groupId>

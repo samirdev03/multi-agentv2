@@ -61,7 +61,7 @@ class TelegramWebhookControllerTest {
                         .content(updateJson))
                 .andExpect(status().isOk());
 
-        verify(forwardingService).forward(eq(channel), eq("Hallo Welt"));
+        verify(forwardingService).forward(eq(channel), eq("Hallo Welt"), eq(42L), eq(1L));
     }
 
     @Test

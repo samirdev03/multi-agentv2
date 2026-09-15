@@ -1,6 +1,6 @@
 package org.example.callback;
 
-import org.example.api.dto.GenericResponseDto;
+import org.example.web.dto.GenericResponseDto;
 import org.example.config.CallbackProperties;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;

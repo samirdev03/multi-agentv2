@@ -1,8 +1,8 @@
 package org.example.callback;
 
 import com.sun.net.httpserver.HttpServer;
-import org.example.api.dto.ChannelType;
-import org.example.api.dto.GenericResponseDto;
+import org.example.web.dto.ChannelType;
+import org.example.web.dto.GenericResponseDto;
 import org.example.config.CallbackProperties;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;

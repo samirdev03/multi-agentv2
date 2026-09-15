@@ -21,7 +21,11 @@ public class TelegramBotClient {
     }
 
     public Mono<Void> sendMessage(TelegramChannel channel, String text) {
-        SendMessageRequest request = new SendMessageRequest(channel.getChannelId(), text);
+        return sendMessage(channel, channel.getChannelId(), text);
+    }
+
+    public Mono<Void> sendMessage(TelegramChannel channel, String chatId, String text) {
+        SendMessageRequest request = new SendMessageRequest(chatId, text);
 
         return webClient.post()
                 .uri("/bot{botToken}/sendMessage", channel.getBotToken())

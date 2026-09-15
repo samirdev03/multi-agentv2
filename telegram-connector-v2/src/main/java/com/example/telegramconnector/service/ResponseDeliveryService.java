@@ -23,10 +23,21 @@ public class ResponseDeliveryService {
 
     private final TelegramChannelResolver channelResolver;
     private final TelegramBotClient telegramBotClient;
+    private final TelegramChatChannelService chatChannels;
 
-    public ResponseDeliveryService(TelegramChannelResolver channelResolver, TelegramBotClient telegramBotClient) {
+    public ResponseDeliveryService(TelegramChannelResolver channelResolver, TelegramBotClient telegramBotClient, TelegramChatChannelService chatChannels) {
         this.channelResolver = channelResolver;
         this.telegramBotClient = telegramBotClient;
+        this.chatChannels = chatChannels;
+    }
+
+    public void deliverStable(String channelId, String message, List<FileAttachmentRequest> attachments) {
+        var mapping = chatChannels.byId(channelId);
+        deliverToChat(channelResolver.resolveChannel(mapping.getBotChannelId()), mapping.getTelegramChatId(), message, attachments);
+    }
+
+    private void deliverToChat(TelegramChannel channel, Long chatId, String message, List<FileAttachmentRequest> attachments) {
+        telegramBotClient.sendMessage(channel, chatId.toString(), message).retryWhen(Retry.backoff(3, Duration.ofMillis(500)).filter(this::isTransientError)).subscribe();
     }
 
     public void deliver(String channelId, String message) {

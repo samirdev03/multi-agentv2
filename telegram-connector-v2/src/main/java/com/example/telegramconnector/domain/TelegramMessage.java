@@ -1,6 +1,8 @@
 package com.example.telegramconnector.domain;
 
-public record TelegramMessage(String message, String channelId) {
+public record TelegramMessage(String message, String channelId, Long telegramChatId, Long updateId) {
+
+    public TelegramMessage(String message, String channelId) { this(message, channelId, null, null); }
 
     public TelegramMessage {
         if (message == null || message.isBlank()) {

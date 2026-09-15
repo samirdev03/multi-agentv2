@@ -2,9 +2,9 @@ package org.example.llm.client;
 
 import lombok.RequiredArgsConstructor;
 import org.example.agent.AgentEntity;
-import org.example.api.dto.GenericResponseDto;
-import org.example.api.dto.RequestDto;
-import org.example.api.dto.ResponseDto;
+import org.example.web.dto.GenericResponseDto;
+import org.example.web.dto.RequestDto;
+import org.example.web.dto.ResponseDto;
 import org.example.config.Credential;
 import org.example.config.CredentialRegistry;
 import org.example.tools.ToolRegistry;

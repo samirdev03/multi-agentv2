@@ -1,12 +1,14 @@
-package org.example.api.dto;
+package org.example.web.dto;
 
 import java.util.List;
+import java.util.UUID;
 
 public record GenericResponseDto(
         ChannelType channelType,
         String channelId,
         String content,
-        List<FileAttachmentDto> attachments
+        List<FileAttachmentDto> attachments,
+        UUID requestId
 ) implements ResponseDto {
 
     public GenericResponseDto {
@@ -20,7 +22,11 @@ public record GenericResponseDto(
             String channelId,
             String content
     ) {
-        this(channelType, channelId, content, List.of());
+        this(channelType, channelId, content, List.of(), null);
+    }
+
+    public GenericResponseDto(ChannelType channelType, String channelId, String content, List<FileAttachmentDto> attachments) {
+        this(channelType, channelId, content, attachments, null);
     }
 
     @Override

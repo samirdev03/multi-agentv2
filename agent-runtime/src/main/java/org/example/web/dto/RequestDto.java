@@ -1,4 +1,4 @@
-package org.example.api.dto;
+package org.example.web.dto;
 
 import java.net.URI;
 

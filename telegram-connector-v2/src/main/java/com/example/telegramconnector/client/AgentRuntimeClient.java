@@ -6,19 +6,20 @@ import com.example.telegramconnector.domain.TelegramMessage;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
+import java.util.UUID;
 
 @Component
 public class AgentRuntimeClient {
 
     private final WebClient webClient;
-    private final String responseUrl;
+    private final String callbackBaseUrl;
 
     public AgentRuntimeClient(WebClient.Builder webClientBuilder,
                                TelegramConnectorProperties properties) {
         this.webClient = webClientBuilder
                 .baseUrl(properties.agentRuntimeBaseUrl())
                 .build();
-        this.responseUrl = properties.callbackBaseUrl() + "/api/v1/responses";
+        this.callbackBaseUrl = properties.callbackBaseUrl();
     }
 
     /**
@@ -27,11 +28,13 @@ public class AgentRuntimeClient {
      * Wire-Vertrag IncomingMessageRequest inkl. channelType (vorher TelegramMessage ohne Typ).
      */
     public Mono<Void> sendAsync(TelegramMessage message) {
+        UUID requestId = UUID.nameUUIDFromBytes(((message.updateId() == null ? "legacy" : message.updateId()) + ":" + message.channelId()).getBytes(java.nio.charset.StandardCharsets.UTF_8));
         IncomingMessageRequest request = new IncomingMessageRequest(
+                requestId,
                 ChannelType.TELEGRAM,
                 message.channelId(),
                 message.message(),
-                responseUrl);
+                callbackBaseUrl + "/api/v1/responses/" + message.channelId());
 
         return webClient.post()
                 .uri("/api/v1/messages")
@@ -42,6 +45,7 @@ public class AgentRuntimeClient {
     }
 
     private record IncomingMessageRequest(
+            UUID requestId,
             ChannelType channelType,
             String channelId,
             String content,
