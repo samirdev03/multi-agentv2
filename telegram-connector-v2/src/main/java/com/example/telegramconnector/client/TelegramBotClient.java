@@ -36,20 +36,29 @@ public class TelegramBotClient {
     }
 
     public Mono<Void> sendPhoto(TelegramChannel channel, FileAttachmentRequest attachment) {
-        return sendAttachment(channel, attachment, "sendPhoto", "photo");
+        return sendPhoto(channel, channel.getChannelId(), attachment);
+    }
+
+    public Mono<Void> sendPhoto(TelegramChannel channel, String chatId, FileAttachmentRequest attachment) {
+        return sendAttachment(channel, chatId, attachment, "sendPhoto", "photo");
     }
 
     public Mono<Void> sendDocument(TelegramChannel channel, FileAttachmentRequest attachment) {
-        return sendAttachment(channel, attachment, "sendDocument", "document");
+        return sendDocument(channel, channel.getChannelId(), attachment);
+    }
+
+    public Mono<Void> sendDocument(TelegramChannel channel, String chatId, FileAttachmentRequest attachment) {
+        return sendAttachment(channel, chatId, attachment, "sendDocument", "document");
     }
 
     private Mono<Void> sendAttachment(
             TelegramChannel channel,
+            String chatId,
             FileAttachmentRequest attachment,
             String endpoint,
             String fileField) {
         MultipartBodyBuilder body = new MultipartBodyBuilder();
-        body.part("chat_id", channel.getChannelId());
+        body.part("chat_id", chatId);
         body.part(fileField, new ByteArrayResource(attachment.content()) {
                     @Override
                     public String getFilename() {

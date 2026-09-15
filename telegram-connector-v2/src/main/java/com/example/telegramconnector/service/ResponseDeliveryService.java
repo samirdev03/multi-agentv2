@@ -37,7 +37,16 @@ public class ResponseDeliveryService {
     }
 
     private void deliverToChat(TelegramChannel channel, Long chatId, String message, List<FileAttachmentRequest> attachments) {
-        telegramBotClient.sendMessage(channel, chatId.toString(), message).retryWhen(Retry.backoff(3, Duration.ofMillis(500)).filter(this::isTransientError)).subscribe();
+        List<Mono<Void>> deliveries = new ArrayList<>();
+        deliveries.add(withRetry(telegramBotClient.sendMessage(channel, chatId.toString(), message)));
+        for (FileAttachmentRequest attachment : attachments == null ? List.<FileAttachmentRequest>of() : attachments) {
+            deliveries.add(withRetry(deliverAttachment(channel, chatId.toString(), attachment)));
+        }
+
+        Flux.concat(deliveries)
+                .doOnError(error -> log.error(
+                        "Zustellung an Telegram fehlgeschlagen fuer stabile channelId={}", chatId, error))
+                .subscribe();
     }
 
     public void deliver(String channelId, String message) {
@@ -63,6 +72,13 @@ public class ResponseDeliveryService {
         return switch (attachment.type()) {
             case IMAGE -> telegramBotClient.sendPhoto(channel, attachment);
             case PDF, TEXT, FILE -> telegramBotClient.sendDocument(channel, attachment);
+        };
+    }
+
+    private Mono<Void> deliverAttachment(TelegramChannel channel, String chatId, FileAttachmentRequest attachment) {
+        return switch (attachment.type()) {
+            case IMAGE -> telegramBotClient.sendPhoto(channel, chatId, attachment);
+            case PDF, TEXT, FILE -> telegramBotClient.sendDocument(channel, chatId, attachment);
         };
     }
 

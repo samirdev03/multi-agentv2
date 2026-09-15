@@ -25,6 +25,9 @@ class ResponseDeliveryServiceTest {
     @Mock
     private TelegramBotClient telegramBotClient;
 
+    @Mock
+    private TelegramChatChannelService chatChannels;
+
     @InjectMocks
     private ResponseDeliveryService responseDeliveryService;
 
@@ -63,5 +66,25 @@ class ResponseDeliveryServiceTest {
         orderedCalls.verify(telegramBotClient).sendMessage(channel, "Antwort vom Agenten");
         orderedCalls.verify(telegramBotClient).sendPhoto(channel, image);
         orderedCalls.verify(telegramBotClient).sendDocument(channel, pdf);
+    }
+
+    @Test
+    void deliverStable_sendsAttachmentsToMappedTelegramChat() {
+        String stableChannelId = "stable-channel";
+        String botChannelId = "bot-channel";
+        Long telegramChatId = 42L;
+        TelegramChannel channel = new TelegramChannel(botChannelId, "Test Bot", "bot-token");
+        FileAttachmentRequest pdf = new FileAttachmentRequest("answer.pdf", FileType.PDF, new byte[] {2});
+        when(chatChannels.byId(stableChannelId)).thenReturn(
+                new com.example.telegramconnector.domain.TelegramChatChannel(stableChannelId, telegramChatId, botChannelId));
+        when(channelResolver.resolveChannel(botChannelId)).thenReturn(channel);
+        when(telegramBotClient.sendMessage(channel, telegramChatId.toString(), "caption")).thenReturn(Mono.empty());
+        when(telegramBotClient.sendDocument(channel, telegramChatId.toString(), pdf)).thenReturn(Mono.empty());
+
+        responseDeliveryService.deliverStable(stableChannelId, "caption", java.util.List.of(pdf));
+
+        var orderedCalls = inOrder(telegramBotClient);
+        orderedCalls.verify(telegramBotClient).sendMessage(channel, telegramChatId.toString(), "caption");
+        orderedCalls.verify(telegramBotClient).sendDocument(channel, telegramChatId.toString(), pdf);
     }
 }
